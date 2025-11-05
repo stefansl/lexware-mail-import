@@ -1,0 +1,91 @@
+# config/services.yaml
+# All comments in English
+
+parameters:
+    app.pdf_storage_dir: '%kernel.project_dir%/var/uploads/lexware'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # Autowire all App\ classes except entities, kernel, and value objects
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Attachment/Attachment.php' # value object, not a service
+
+    # Auto-register console commands (use #[AsCommand] on classes)
+    App\Command\:
+        resource: '../src/Command/'
+
+    # Third-party: register Webklex ClientManager as a DI service
+    Webklex\PHPIMAP\ClientManager: ~
+
+    # IMAP connection factory
+    App\Imap\ImapConnectionFactory:
+        arguments:
+            $clientManager: '@Webklex\PHPIMAP\ClientManager'
+            $host: '%env(IMAP_HOST)%'
+            $port: '%env(int:IMAP_PORT)%'
+            $encryption: '%env(default::IMAP_ENCRYPTION)%'
+            $username: '%env(IMAP_USERNAME)%'
+            $password: '%env(IMAP_PASSWORD)%'
+
+    # Message fetcher
+    App\Imap\WebklexMessageFetcher:
+        arguments:
+            $factory: '@App\Imap\ImapConnectionFactory'
+            $defaultMailbox: '%env(default::IMAP_MAILBOX)%'
+            $defaultSearch: '%env(default::IMAP_SEARCH)%'
+
+    # Attachment providers
+    App\Attachment\Provider\WebklexAttachmentProvider: ~
+    App\Attachment\Provider\RawMimeAttachmentProvider: ~
+    App\Attachment\Provider\ExtImapAttachmentProvider:
+        arguments:
+            $host: '%env(IMAP_HOST)%'
+            $port: '%env(int:IMAP_PORT)%'
+            $encryption: '%env(default::IMAP_ENCRYPTION)%'
+            $username: '%env(IMAP_USERNAME)%'
+            $password: '%env(IMAP_PASSWORD)%'
+
+    # Provider chain (order matters)
+    App\Attachment\AttachmentChainProvider:
+        arguments:
+            $providers:
+                - '@App\Attachment\Provider\WebklexAttachmentProvider'
+                - '@App\Attachment\Provider\RawMimeAttachmentProvider'
+                - '@App\Attachment\Provider\ExtImapAttachmentProvider'
+
+    # PDF detector
+    App\Detection\PdfDetector: ~
+
+    # Persistence helper
+    App\Persistence\MailPersister: ~
+
+    App\Service\FileInspector: ~
+
+    # Pdf storage: inject storage directory
+    App\Service\PdfStorage:
+        arguments:
+            $storageDir: '%app.pdf_storage_dir%'
+
+    # Lexware API client
+    App\Service\LexwareClient:
+        arguments:
+            $httpClient: '@http_client'
+            $baseUri: '%env(LEXWARE_BASE_URI)%'
+            $apiKey: '%env(LEXWARE_API_KEY)%'
+            $tenant: '%env(default::LEXWARE_TENANT)%'
+            $uploadEndpoint: '%env(default::LEXWARE_UPLOAD_ENDPOINT)%'
+
+        # Error notifier
+    App\Service\ErrorNotifier:
+        arguments:
+            $mailer: '@mailer'
+            $fromAddress: '%env(MAILER_FROM)%'
+            $toAddress: '%env(MAILER_TO)%'

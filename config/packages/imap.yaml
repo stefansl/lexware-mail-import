@@ -1,0 +1,8 @@
+parameters:
+    app.imap.host: '%env(IMAP_HOST)%'
+    app.imap.port: '%env(int:IMAP_PORT)%'
+    app.imap.encryption: '%env(IMAP_ENCRYPTION)%' # 'ssl'|'tls'|null
+    app.imap.username: '%env(IMAP_USERNAME)%'
+    app.imap.password: '%env(IMAP_PASSWORD)%'
+    app.imap.mailbox: 'INBOX'
+    app.imap.search: 'UNSEEN'

@@ -1,0 +1,2 @@
+parameters:
+    app.lexware.api_key: '%env(LEXWARE_API_KEY)%'
