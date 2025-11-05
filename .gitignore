@@ -3,9 +3,16 @@
 /.env.local
 /.env.local.php
 /.env.*.local
+/.env.dev
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
 /var/
 /vendor/
 /.idea/
 ###< symfony/framework-bundle ###
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
+/phpunit.xml.dist
