@@ -8,6 +8,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Component\Mime\Part\Multipart\FormDataPart;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use App\Service\Exception\UploadPreflightException;
+use App\Service\Exception\LexwareHttpException;
 
 /**
  * Lexware Public API client for voucher file uploads.
@@ -23,7 +26,9 @@ final class LexwareClient
         private readonly string $baseUri,                   // e.g. https://api.lexware.io
         private readonly string $apiKey,                    // Bearer token
         private readonly ?string $tenant = null,            // optional tenant header
-        private readonly string $uploadEndpoint = '/v1/files' // correct default endpoint
+        private readonly string $uploadEndpoint = '/v1/files', // correct default endpoint
+        private readonly int $maxAttempts = 3,
+        private readonly int $baseSleepMs = 250,
     ) {}
 
     /** Upload a voucher file and return decoded JSON. */
@@ -40,7 +45,7 @@ final class LexwareClient
             $check = $this->inspector->validateVoucherUpload($absolutePath);
             if (!$check['ok']) {
                 $this->logger->error('Preflight failed', ['path' => $absolutePath, 'reason' => $check['reason'] ?? null]);
-                throw new \RuntimeException('Preflight failed: '.$check['reason']);
+                throw new UploadPreflightException('Preflight failed: '.$check['reason']);
             }
 
             // Ensure a valid filename (extension)
@@ -76,11 +81,29 @@ final class LexwareClient
 
             $url = rtrim($this->baseUri, '/') . '/' . ltrim($this->uploadEndpoint, '/');
 
-            $response = $this->httpClient->request('POST', $url, [
-                'auth_bearer' => $this->apiKey,   // Authorization header handled by client
-                'headers'     => $headerLines,    // ONLY raw header lines
-                'body'        => $form->bodyToIterable(),
-            ]);
+            $attempt = 0;
+            start:
+            $attempt++;
+            try {
+                $response = $this->httpClient->request('POST', $url, [
+                    'auth_bearer' => $this->apiKey,   // Authorization header handled by client
+                    'headers'     => $headerLines,    // ONLY raw header lines
+                    'body'        => $form->bodyToIterable(),
+                ]);
+            } catch (TransportExceptionInterface $te) {
+                if ($attempt < $this->maxAttempts) {
+                    $sleep = $this->baseSleepMs * (2 ** ($attempt - 1));
+                    $this->logger->warning('Transport error on upload, retrying', [
+                        'attempt' => $attempt,
+                        'sleep_ms' => $sleep,
+                        'error' => $te->getMessage(),
+                    ]);
+                    usleep($sleep * 1000);
+                    goto start;
+                }
+                $this->logger->error('Transport error on upload, giving up', ['attempts' => $attempt, 'error' => $te->getMessage()]);
+                throw $te;
+            }
 
             $status = $response->getStatusCode();
             $body   = $response->getContent(false);
@@ -91,11 +114,12 @@ final class LexwareClient
                 'size'   => $check['size'] ?? null,
                 'mime'   => $mime,
                 'file'   => $absolutePath,
+                'attempt'=> $attempt,
             ]);
 
             if ($status === 406) {
                 $this->logger->error('Lexware 406 Not Acceptable', ['response' => $body]);
-                throw new \RuntimeException("Lexware 406 Not Acceptable — likely file type/extension issue or e-invoice not enabled. Response: {$body}");
+                throw new LexwareHttpException(406, "Lexware 406 Not Acceptable — likely file type/extension issue or e-invoice not enabled. Response: {$body}");
             }
 
             if ($status === 409) { // optional duplicate handling
@@ -106,9 +130,21 @@ final class LexwareClient
                 }
             }
 
+            $isTransient = $status === 408 || $status === 429 || ($status >= 500 && $status <= 599);
+            if ($isTransient && $attempt < $this->maxAttempts) {
+                $sleep = $this->baseSleepMs * (2 ** ($attempt - 1));
+                $this->logger->warning('Lexware transient HTTP error, retrying', [
+                    'status' => $status,
+                    'attempt' => $attempt,
+                    'sleep_ms' => $sleep,
+                ]);
+                usleep($sleep * 1000);
+                goto start;
+            }
+
             if ($status < 200 || $status >= 300) {
                 $this->logger->error('Lexware upload failed (non-2xx)', ['status' => $status, 'response' => $body]);
-                throw new \RuntimeException("Lexware upload failed: HTTP {$status} — {$body}");
+                throw new LexwareHttpException($status, "Lexware upload failed: HTTP {$status} — {$body}");
             }
 
             $json = $response->toArray(false);

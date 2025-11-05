@@ -3,6 +3,15 @@
 
 parameters:
     app.pdf_storage_dir: '%kernel.project_dir%/var/uploads/lexware'
+    app.upload_max_bytes: 5242880 # 5MB default
+    app.allowed_mimes:
+        - 'application/pdf'
+        - 'image/png'
+        - 'image/jpeg'
+        - 'application/xml'
+        - 'text/xml'
+    app.http_retry_max_attempts: 3
+    app.http_retry_base_sleep_ms: 250
 
 services:
     _defaults:
@@ -67,7 +76,10 @@ services:
     # Persistence helper
     App\Persistence\MailPersister: ~
 
-    App\Service\FileInspector: ~
+    App\Service\FileInspector:
+        arguments:
+            $maxBytes: '%app.upload_max_bytes%'
+            $allowedMimes: '%app.allowed_mimes%'
 
     # Pdf storage: inject storage directory
     App\Service\PdfStorage:
@@ -82,6 +94,8 @@ services:
             $apiKey: '%env(LEXWARE_API_KEY)%'
             $tenant: '%env(default::LEXWARE_TENANT)%'
             $uploadEndpoint: '%env(default::LEXWARE_UPLOAD_ENDPOINT)%'
+            $maxAttempts: '%app.http_retry_max_attempts%'
+            $baseSleepMs: '%app.http_retry_base_sleep_ms%'
 
         # Error notifier
     App\Service\ErrorNotifier:

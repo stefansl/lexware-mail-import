@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mailer\MailerInterface;
 
@@ -12,7 +14,9 @@ final class ErrorNotifier
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly string $fromAddress,
-        private readonly string $toAddress
+        private readonly string $toAddress,
+        #[Autowire(service: 'monolog.logger.importer')]
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function notify(string $subject, string $message): void
@@ -23,7 +27,14 @@ final class ErrorNotifier
             ->subject($subject)
             ->text($message);
 
-        try { $this->mailer->send($email); }
-        catch (\Throwable $e) { error_log('[ErrorNotifier] send failed: '.$e->getMessage()); }
+        try {
+            $this->mailer->send($email);
+            $this->logger->info('Error notification sent', ['to' => $this->toAddress, 'subject' => $subject]);
+        } catch (\Throwable $e) {
+            $this->logger->error('ErrorNotifier send failed', [
+                'error' => $e->getMessage(),
+                'subject' => $subject,
+            ]);
+        }
     }
 }

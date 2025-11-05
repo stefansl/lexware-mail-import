@@ -24,9 +24,7 @@ final class Importer
         private readonly AttachmentChainProvider $attachments,
         private readonly PdfDetector $pdfDetector,
         private readonly MailPersister $persister,
-        private readonly LexwareClient $lexware,
-        private readonly ErrorNotifier $notifier,
-        private readonly FileInspector $inspector,   // << inject
+        private readonly VoucherUploader $uploader,
         private readonly LoggerInterface $logger,
     ) {}
 
@@ -66,8 +64,6 @@ final class Importer
             // Upload each PDF (skip already-synced dedupes)
             /** @var ImportedPdf $pdf */
             foreach ($importedPdfs as $pdf) {
-
-                // If persister returned an existing row (dedupe), skip upload if already synced
                 if ($pdf->isSynced()) {
                     $this->logger->info('skip upload (already synced)', [
                         'file' => $pdf->getStoredPath(),
@@ -76,42 +72,7 @@ final class Importer
                     continue;
                 }
 
-                // Preflight check
-                $meta = $this->inspector->validateVoucherUpload($pdf->getStoredPath());
-                $this->logger->info('upload preflight', [
-                    'path' => $pdf->getStoredPath(),
-                    'ok'   => $meta['ok'],
-                    'mime' => $meta['mime'] ?? null,
-                    'size' => $meta['size'] ?? 0,
-                ]);
-                if (!$meta['ok']) {
-                    $pdf->setSynced(false);
-                    $pdf->setLastError('preflight: '.$meta['reason']);
-                    // do not flush here; we flush once after processing this mail
-                    continue;
-                }
-
-                // Upload to Lexware
-                try {
-                    $res = $this->lexware->uploadVoucherFile($pdf->getStoredPath());
-                    $pdf->setSynced(true);
-                    $pdf->setLexwareFileId($res['id'] ?? null);
-                    $pdf->setLexwareVoucherId($res['voucherId'] ?? null);
-                    $pdf->setLastError(null);
-                } catch (\Throwable $e) {
-                    $pdf->setSynced(false);
-                    $pdf->setLastError($e->getMessage());
-                    $this->notifier->notify(
-                        'Upload to Lexware API failed',
-                        sprintf("File: %s\nError: %s", $pdf->getStoredPath(), $e->getMessage())
-                    );
-                    $this->logger->error('Lexware upload failed', [
-                        'file'   => $pdf->getStoredPath(),
-                        'error'  => $e->getMessage(),
-                        'class'  => $e::class,
-                        'trace'  => $e->getTraceAsString(),
-                    ]);
-                }
+                $this->uploader->upload($pdf);
             }
 
             // Flush DB for updated PDF flags/ids (single batch)
