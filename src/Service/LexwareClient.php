@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Contract\FileInspectorInterface;
+use App\Contract\LexwareUploaderInterface;
 use App\Service\Exception\LexwareHttpException;
 use App\Service\Exception\UploadPreflightException;
 use Psr\Log\LoggerInterface;
@@ -17,11 +19,11 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Lexware Public API client for voucher file uploads.
  * All comments are in English.
  */
-final class LexwareClient
+final class LexwareClient implements LexwareUploaderInterface
 {
     public function __construct(
         private readonly HttpClientInterface $httpClient,   // @http_client or scoped client
-        private readonly FileInspector $inspector,          // preflight validation (size/mime/magic)
+        private readonly FileInspectorInterface $inspector,          // preflight validation (size/mime/magic)
         #[Autowire(service: 'monolog.logger.lexware')]
         private readonly LoggerInterface $logger,           // dedicated logger channel
         private readonly string $baseUri,                   // e.g. https://api.lexware.io
@@ -36,15 +38,9 @@ final class LexwareClient
     /** Upload a voucher file and return decoded JSON. */
     public function uploadVoucherFile(string $absolutePath): array
     {
-        // convert ANY PHP warning/notice into ErrorException as early as possible
-        $prevHandler = set_error_handler(
-            static function (int $severity, string $message, string $file = '', int $line = 0): bool {
-                if (!(error_reporting() & $severity)) {
-                    return false;
-                } // keep silenced @-errors silenced
-                throw new \ErrorException($message, 0, $severity, $file, $line);
-            }
-        );
+        // Error handler will be enabled only for the risky section (after preflight)
+        $prevHandler = null;
+        $handlerSet = false;
 
         try {
             // Preflight: validate size/mime/magic
@@ -69,6 +65,17 @@ final class LexwareClient
             }
 
             $mime = $check['mime'] ?? 'application/octet-stream';
+
+            // Enable strict error handler only for multipart build and request
+            $prevHandler = set_error_handler(
+                static function (int $severity, string $message, string $file = '', int $line = 0): bool {
+                    if (!(error_reporting() & $severity)) {
+                        return false;
+                    }
+                    throw new \ErrorException($message, 0, $severity, $file, $line);
+                }
+            );
+            $handlerSet = true;
 
             // Build multipart (these calls are now inside the error-handler scope)
             $form = new FormDataPart([
@@ -174,11 +181,7 @@ final class LexwareClient
             ]);
             throw new \RuntimeException($e->getMessage(), previous: $e);
         } finally {
-            if ($prevHandler !== null) {
-                set_error_handler($prevHandler);
-            } else {
-                restore_error_handler();
-            }
+            set_error_handler($prevHandler);
         }
     }
 }

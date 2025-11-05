@@ -3,13 +3,14 @@ declare(strict_types=1);
 
 namespace App\Imap;
 
+use App\Contract\MessageFetcherInterface;
 use App\DTO\ImapFetchFilter;
 
 /**
  * Fetches messages via Webklex and yields MessageRef objects.
  * Now with robust folder resolution and clear errors.
  */
-final class WebklexMessageFetcher
+final class WebklexMessageFetcher implements MessageFetcherInterface
 {
     public function __construct(
         private readonly ImapConnectionFactory $factory,

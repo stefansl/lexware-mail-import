@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-final readonly class FileInspector
+use App\Contract\FileInspectorInterface;
+
+final readonly class FileInspector implements FileInspectorInterface
 {
     public function __construct(
         private int $maxBytes,

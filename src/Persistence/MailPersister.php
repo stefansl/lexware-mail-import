@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Persistence;
 
 use App\Attachment\Attachment;
+use App\Contract\MailPersisterInterface;
 use App\Entity\ImportedMail;
 use App\Entity\ImportedPdf;
 use App\Service\PdfStorage;
@@ -12,7 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 /**
  * Persists ImportedMail and ImportedPdf rows; stores file bytes via PdfStorage.
  */
-final class MailPersister
+final class MailPersister implements MailPersisterInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,

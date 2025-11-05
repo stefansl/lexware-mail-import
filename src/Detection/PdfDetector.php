@@ -4,9 +4,10 @@ declare(strict_types=1);
 namespace App\Detection;
 
 use App\Attachment\Attachment;
+use App\Contract\PdfDetectorInterface;
 
 /** Decides if an attachment is a PDF (name/mime/magic header). */
-final class PdfDetector
+final class PdfDetector implements PdfDetectorInterface
 {
     public function isPdf(Attachment $a): bool
     {

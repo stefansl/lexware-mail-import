@@ -3,28 +3,29 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Attachment\AttachmentChainProvider;
-use App\Detection\PdfDetector;
+use App\Attachment\AttachmentProviderInterface;
+use App\Contract\ImporterInterface;
+use App\Contract\MailPersisterInterface;
+use App\Contract\MessageFetcherInterface;
+use App\Contract\PdfDetectorInterface;
+use App\Contract\VoucherUploaderInterface;
 use App\DTO\ImapFetchFilter;
 use App\Entity\ImportedMail;
 use App\Entity\ImportedPdf;
-use App\Imap\WebklexMessageFetcher;
-use App\Persistence\MailPersister;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Orchestrates: fetch -> attachments -> PDF filter -> persist -> upload -> flags & notify.
  * All comments are in English.
  */
-final class Importer
+final class Importer implements ImporterInterface
 {
     public function __construct(
-        private readonly WebklexMessageFetcher $fetcher,
-        private readonly AttachmentChainProvider $attachments,
-        private readonly PdfDetector $pdfDetector,
-        private readonly MailPersister $persister,
-        private readonly VoucherUploader $uploader,
+        private readonly MessageFetcherInterface $fetcher,
+        private readonly AttachmentProviderInterface $attachments,
+        private readonly PdfDetectorInterface $pdfDetector,
+        private readonly MailPersisterInterface $persister,
+        private readonly VoucherUploaderInterface $uploader,
         private readonly LoggerInterface $logger,
     ) {}
 

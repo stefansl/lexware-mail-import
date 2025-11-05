@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Contract\ErrorNotifierInterface;
+use App\Contract\FileInspectorInterface;
+use App\Contract\LexwareUploaderInterface;
+use App\Contract\VoucherUploaderInterface;
 use App\Entity\ImportedPdf;
 use App\Service\Exception\UploadPreflightException;
 use Psr\Log\LoggerInterface;
@@ -11,12 +15,12 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 /**
  * Handles preflight validation and upload of a single voucher PDF to Lexware.
  */
-final class VoucherUploader
+final class VoucherUploader implements VoucherUploaderInterface
 {
     public function __construct(
-        private readonly LexwareClient $lexware,
-        private readonly FileInspector $inspector,
-        private readonly ErrorNotifier $notifier,
+        private readonly LexwareUploaderInterface $lexware,
+        private readonly FileInspectorInterface $inspector,
+        private readonly ErrorNotifierInterface $notifier,
         #[Autowire(service: 'monolog.logger.lexware')]
         private readonly LoggerInterface $logger,
     ) {}

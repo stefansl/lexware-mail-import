@@ -16,3 +16,4 @@
 /.phpunit.cache/
 ###< phpunit/phpunit ###
 /phpunit.xml.dist
+/.env.test

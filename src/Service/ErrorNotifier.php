@@ -3,13 +3,14 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Contract\ErrorNotifierInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mailer\MailerInterface;
 
 /** Sends error notifications via email. */
-final class ErrorNotifier
+final class ErrorNotifier implements ErrorNotifierInterface
 {
     public function __construct(
         private readonly MailerInterface $mailer,

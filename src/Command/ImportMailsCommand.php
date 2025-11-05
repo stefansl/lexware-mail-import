@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Contract\ImporterInterface;
 use App\DTO\ImapFetchFilter;
-use App\Service\Importer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -22,7 +22,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class ImportMailsCommand extends Command
 {
     public function __construct(
-        private readonly Importer $importer,
+        private readonly ImporterInterface $importer,
     ) {
         parent::__construct();
     }

@@ -18,6 +18,16 @@ services:
         autowire: true
         autoconfigure: true
 
+    # Interface to implementation bindings (for testability without bypass-finals)
+    App\Contract\FileInspectorInterface: '@App\Service\FileInspector'
+    App\Contract\LexwareUploaderInterface: '@App\Service\LexwareClient'
+    App\Contract\VoucherUploaderInterface: '@App\Service\VoucherUploader'
+    App\Contract\ImporterInterface: '@App\Service\Importer'
+    App\Contract\MessageFetcherInterface: '@App\Imap\WebklexMessageFetcher'
+    App\Contract\MailPersisterInterface: '@App\Persistence\MailPersister'
+    App\Contract\ErrorNotifierInterface: '@App\Service\ErrorNotifier'
+    App\Contract\PdfDetectorInterface: '@App\Detection\PdfDetector'
+
     # Autowire all App\ classes except entities, kernel, and value objects
     App\:
         resource: '../src/'
@@ -72,6 +82,9 @@ services:
 
     # PDF detector
     App\Detection\PdfDetector: ~
+
+    # Prefer the chain as the single AttachmentProviderInterface for consumers
+    App\Attachment\AttachmentProviderInterface: '@App\Attachment\AttachmentChainProvider'
 
     # Persistence helper
     App\Persistence\MailPersister: ~
