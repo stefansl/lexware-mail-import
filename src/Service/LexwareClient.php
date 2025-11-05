@@ -1,16 +1,17 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Service\Exception\LexwareHttpException;
+use App\Service\Exception\UploadPreflightException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Component\Mime\Part\Multipart\FormDataPart;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use App\Service\Exception\UploadPreflightException;
-use App\Service\Exception\LexwareHttpException;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * Lexware Public API client for voucher file uploads.
@@ -29,34 +30,40 @@ final class LexwareClient
         private readonly string $uploadEndpoint = '/v1/files', // correct default endpoint
         private readonly int $maxAttempts = 3,
         private readonly int $baseSleepMs = 250,
-    ) {}
+    ) {
+    }
 
     /** Upload a voucher file and return decoded JSON. */
     public function uploadVoucherFile(string $absolutePath): array
     {
         // convert ANY PHP warning/notice into ErrorException as early as possible
-        $prevHandler = set_error_handler(static function (int $severity, string $message, string $file = '', int $line = 0): bool {
-            if (!(error_reporting() & $severity)) return false; // keep silenced @-errors silenced
-            throw new \ErrorException($message, 0, $severity, $file, $line);
-        });
+        $prevHandler = set_error_handler(
+            static function (int $severity, string $message, string $file = '', int $line = 0): bool {
+                if (!(error_reporting() & $severity)) {
+                    return false;
+                } // keep silenced @-errors silenced
+                throw new \ErrorException($message, 0, $severity, $file, $line);
+            }
+        );
 
         try {
             // Preflight: validate size/mime/magic
             $check = $this->inspector->validateVoucherUpload($absolutePath);
             if (!$check['ok']) {
-                $this->logger->error('Preflight failed', ['path' => $absolutePath, 'reason' => $check['reason'] ?? null]);
-                throw new UploadPreflightException('Preflight failed: '.$check['reason']);
+                $this->logger->error('Preflight failed', ['path' => $absolutePath, 'reason' => $check['reason'] ?? null]
+                );
+                throw new UploadPreflightException('Preflight failed: ' . $check['reason']);
             }
 
             // Ensure a valid filename (extension)
             $filename = basename($absolutePath);
             if (!preg_match('/\.(pdf|png|jpg|jpeg|xml)$/i', $filename)) {
                 $ext = match ($check['mime'] ?? '') {
-                    'application/pdf'              => '.pdf',
-                    'image/png'                    => '.png',
-                    'image/jpeg'                   => '.jpg',
-                    'application/xml', 'text/xml'  => '.xml',
-                    default                        => '',
+                    'application/pdf' => '.pdf',
+                    'image/png' => '.png',
+                    'image/jpeg' => '.jpg',
+                    'application/xml', 'text/xml' => '.xml',
+                    default => '',
                 };
                 $filename .= $ext;
             }
@@ -70,10 +77,11 @@ final class LexwareClient
             ]);
 
             // Build header lines ONLY; never parse/split -> avoids "array key 1"
-            $headerLines = $form->getPreparedHeaders()->toArray(); // e.g. ["Content-Type: multipart/form-data; boundary=..."]
+            $headerLines = $form->getPreparedHeaders()->toArray(
+            ); // e.g. ["Content-Type: multipart/form-data; boundary=..."]
             $headerLines[] = 'Accept: application/json';
             if ($this->tenant) {
-                $headerLines[] = 'X-Lexware-Tenant: '.$this->tenant;
+                $headerLines[] = 'X-Lexware-Tenant: ' . $this->tenant;
             }
 
             // Debug: show the exact header lines (no secrets)
@@ -87,8 +95,8 @@ final class LexwareClient
             try {
                 $response = $this->httpClient->request('POST', $url, [
                     'auth_bearer' => $this->apiKey,   // Authorization header handled by client
-                    'headers'     => $headerLines,    // ONLY raw header lines
-                    'body'        => $form->bodyToIterable(),
+                    'headers' => $headerLines,    // ONLY raw header lines
+                    'body' => $form->bodyToIterable(),
                 ]);
             } catch (TransportExceptionInterface $te) {
                 if ($attempt < $this->maxAttempts) {
@@ -101,25 +109,31 @@ final class LexwareClient
                     usleep($sleep * 1000);
                     goto start;
                 }
-                $this->logger->error('Transport error on upload, giving up', ['attempts' => $attempt, 'error' => $te->getMessage()]);
+                $this->logger->error(
+                    'Transport error on upload, giving up',
+                    ['attempts' => $attempt, 'error' => $te->getMessage()]
+                );
                 throw $te;
             }
 
             $status = $response->getStatusCode();
-            $body   = $response->getContent(false);
+            $body = $response->getContent(false);
 
             $this->logger->info('Lexware upload response', [
-                'url'    => $url,
+                'url' => $url,
                 'status' => $status,
-                'size'   => $check['size'] ?? null,
-                'mime'   => $mime,
-                'file'   => $absolutePath,
-                'attempt'=> $attempt,
+                'size' => $check['size'] ?? null,
+                'mime' => $mime,
+                'file' => $absolutePath,
+                'attempt' => $attempt,
             ]);
 
             if ($status === 406) {
                 $this->logger->error('Lexware 406 Not Acceptable', ['response' => $body]);
-                throw new LexwareHttpException(406, "Lexware 406 Not Acceptable — likely file type/extension issue or e-invoice not enabled. Response: {$body}");
+                throw new LexwareHttpException(
+                    406,
+                    "Lexware 406 Not Acceptable — likely file type/extension issue or e-invoice not enabled. Response: {$body}"
+                );
             }
 
             if ($status === 409) { // optional duplicate handling
@@ -153,14 +167,18 @@ final class LexwareClient
             // Any PHP warning/notice ends here with full context
             $this->logger->error('PHP warning/notice during upload', [
                 'message' => $e->getMessage(),
-                'file'    => $e->getFile(),
-                'line'    => $e->getLine(),
-                'trace'   => $e->getTraceAsString(),
-                'path'    => $absolutePath,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'path' => $absolutePath,
             ]);
             throw new \RuntimeException($e->getMessage(), previous: $e);
         } finally {
-            if ($prevHandler !== null) set_error_handler($prevHandler); else restore_error_handler();
+            if ($prevHandler !== null) {
+                set_error_handler($prevHandler);
+            } else {
+                restore_error_handler();
+            }
         }
     }
 }
