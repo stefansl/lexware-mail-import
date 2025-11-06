@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Imap;
 
+use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
 
 /**
@@ -19,7 +20,7 @@ final class ImapConnectionFactory
         private readonly string $password,
     ) {}
 
-    public function create(): \Webklex\PHPIMAP\Client
+    public function create(): Client
     {
         $client = $this->clientManager->make([
             'host'          => $this->host,
@@ -31,6 +32,7 @@ final class ImapConnectionFactory
             'protocol'      => 'imap',
         ]);
         $client->connect();
+
         return $client;
     }
 }
