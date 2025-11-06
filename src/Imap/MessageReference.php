@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Imap;
@@ -16,5 +17,6 @@ final class MessageReference
         public readonly ?string $messageId,
         public readonly \DateTimeImmutable $receivedAt,
         public readonly string $mailbox,
-    ) {}
+    ) {
+    }
 }

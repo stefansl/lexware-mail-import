@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\DTO;
@@ -15,5 +16,6 @@ final class ImapFetchFilter
         public readonly ?string $subjectContains = null,
         public readonly ?string $mailbox = null,
         public readonly ?bool $onlyUnseen = null, // true = unseen, false = seen, null = keep default from config
-    ) {}
+    ) {
+    }
 }

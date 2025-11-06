@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service;
@@ -23,7 +24,8 @@ final class VoucherUploader implements VoucherUploaderInterface
         private readonly ErrorNotifierInterface $notifier,
         #[Autowire(service: 'monolog.logger.lexware')]
         private readonly LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     /** Perform preflight + upload; update ImportedPdf state accordingly. */
     public function upload(ImportedPdf $pdf): void
@@ -34,13 +36,14 @@ final class VoucherUploader implements VoucherUploaderInterface
         $meta = $this->inspector->validateVoucherUpload($path);
         $this->logger->info('upload preflight', [
             'path' => $path,
-            'ok'   => $meta['ok'],
+            'ok' => $meta['ok'],
             'mime' => $meta['mime'] ?? null,
             'size' => $meta['size'] ?? 0,
         ]);
         if (!$meta['ok']) {
             $pdf->setSynced(false);
             $pdf->setLastError('preflight: '.$meta['reason']);
+
             return;
         }
 
@@ -62,9 +65,9 @@ final class VoucherUploader implements VoucherUploaderInterface
                 sprintf("File: %s\nError: %s", $path, $e->getMessage())
             );
             $this->logger->error('Lexware upload failed', [
-                'file'   => $path,
-                'error'  => $e->getMessage(),
-                'class'  => $e::class,
+                'file' => $path,
+                'error' => $e->getMessage(),
+                'class' => $e::class,
             ]);
         }
     }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Entity;
@@ -32,17 +33,56 @@ class ImportedMail
     #[ORM\Column(name: 'received_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $receivedAt;
 
-    public function getId(): ?int { return $this->id; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
 
-    public function getSubject(): string { return $this->subject; }
-    public function setSubject(string $subject): self { $this->subject = $subject; return $this; }
+    public function getSubject(): string
+    {
+        return $this->subject;
+    }
 
-    public function getFromAddress(): string { return $this->fromAddress; }
-    public function setFromAddress(string $from): self { $this->fromAddress = $from; return $this; }
+    public function setSubject(string $subject): self
+    {
+        $this->subject = $subject;
 
-    public function getMessageId(): ?string { return $this->messageId; }
-    public function setMessageId(?string $mid): self { $this->messageId = $mid; return $this; }
+        return $this;
+    }
 
-    public function getReceivedAt(): \DateTimeImmutable { return $this->receivedAt; }
-    public function setReceivedAt(\DateTimeImmutable $dt): self { $this->receivedAt = $dt; return $this; }
+    public function getFromAddress(): string
+    {
+        return $this->fromAddress;
+    }
+
+    public function setFromAddress(string $from): self
+    {
+        $this->fromAddress = $from;
+
+        return $this;
+    }
+
+    public function getMessageId(): ?string
+    {
+        return $this->messageId;
+    }
+
+    public function setMessageId(?string $mid): self
+    {
+        $this->messageId = $mid;
+
+        return $this;
+    }
+
+    public function getReceivedAt(): \DateTimeImmutable
+    {
+        return $this->receivedAt;
+    }
+
+    public function setReceivedAt(\DateTimeImmutable $dt): self
+    {
+        $this->receivedAt = $dt;
+
+        return $this;
+    }
 }

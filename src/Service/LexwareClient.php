@@ -48,7 +48,7 @@ final class LexwareClient implements LexwareUploaderInterface
             if (!$check['ok']) {
                 $this->logger->error('Preflight failed', ['path' => $absolutePath, 'reason' => $check['reason'] ?? null]
                 );
-                throw new UploadPreflightException('Preflight failed: ' . $check['reason']);
+                throw new UploadPreflightException('Preflight failed: '.$check['reason']);
             }
 
             // Ensure a valid filename (extension)
@@ -88,13 +88,13 @@ final class LexwareClient implements LexwareUploaderInterface
             ); // e.g. ["Content-Type: multipart/form-data; boundary=..."]
             $headerLines[] = 'Accept: application/json';
             if ($this->tenant) {
-                $headerLines[] = 'X-Lexware-Tenant: ' . $this->tenant;
+                $headerLines[] = 'X-Lexware-Tenant: '.$this->tenant;
             }
 
             // Debug: show the exact header lines (no secrets)
             $this->logger->debug('multipart header lines', ['lines' => $headerLines]);
 
-            $url = rtrim($this->baseUri, '/') . '/' . ltrim($this->uploadEndpoint, '/');
+            $url = rtrim($this->baseUri, '/').'/'.ltrim($this->uploadEndpoint, '/');
 
             $attempt = 0;
             start:
@@ -135,15 +135,12 @@ final class LexwareClient implements LexwareUploaderInterface
                 'attempt' => $attempt,
             ]);
 
-            if ($status === 406) {
+            if (406 === $status) {
                 $this->logger->error('Lexware 406 Not Acceptable', ['response' => $body]);
-                throw new LexwareHttpException(
-                    406,
-                    "Lexware 406 Not Acceptable — likely file type/extension issue or e-invoice not enabled. Response: {$body}"
-                );
+                throw new LexwareHttpException(406, "Lexware 406 Not Acceptable — likely file type/extension issue or e-invoice not enabled. Response: {$body}");
             }
 
-            if ($status === 409) { // optional duplicate handling
+            if (409 === $status) { // optional duplicate handling
                 $this->logger->warning('Lexware 409 Conflict (possible duplicate upload)', ['response' => $body]);
                 $json = json_decode($body, true);
                 if (is_array($json)) {
@@ -151,7 +148,7 @@ final class LexwareClient implements LexwareUploaderInterface
                 }
             }
 
-            $isTransient = $status === 408 || $status === 429 || ($status >= 500 && $status <= 599);
+            $isTransient = 408 === $status || 429 === $status || ($status >= 500 && $status <= 599);
             if ($isTransient && $attempt < $this->maxAttempts) {
                 $sleep = $this->baseSleepMs * (2 ** ($attempt - 1));
                 $this->logger->warning('Lexware transient HTTP error, retrying', [
@@ -169,6 +166,7 @@ final class LexwareClient implements LexwareUploaderInterface
             }
 
             $json = $response->toArray(false);
+
             return is_array($json) ? $json : [];
         } catch (\ErrorException $e) {
             // Any PHP warning/notice ends here with full context

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Command;
@@ -45,31 +46,36 @@ final class ImportMailsCommand extends Command
 
         $sinceOpt = $input->getOption('since');
         $since = null;
-        if (is_string($sinceOpt) && $sinceOpt !== '') {
-            try { $since = new \DateTimeImmutable($sinceOpt); } catch (\Throwable) { $since = null; }
+        if (is_string($sinceOpt) && '' !== $sinceOpt) {
+            try {
+                $since = new \DateTimeImmutable($sinceOpt);
+            } catch (\Throwable) {
+                $since = null;
+            }
         }
 
-        $unseen = (bool)$input->getOption('unseen');
-        $seen   = (bool)$input->getOption('seen');
+        $unseen = (bool) $input->getOption('unseen');
+        $seen = (bool) $input->getOption('seen');
         $onlyUnseen = $unseen ? true : ($seen ? false : null);
         if ($unseen && $seen) {
             $io->warning('Options --unseen and --seen are mutually exclusive. Using --unseen.');
         }
 
-        $limit = max(1, (int)$input->getOption('limit'));
+        $limit = max(1, (int) $input->getOption('limit'));
 
         $filter = new ImapFetchFilter(
             since: $since,
             limit: $limit,
-            fromContains: (string)($input->getOption('from') ?? ''),
-            subjectContains: (string)($input->getOption('subject-contains') ?? ''),
-            mailbox: (string)($input->getOption('mailbox') ?? ''),
+            fromContains: (string) ($input->getOption('from') ?? ''),
+            subjectContains: (string) ($input->getOption('subject-contains') ?? ''),
+            mailbox: (string) ($input->getOption('mailbox') ?? ''),
             onlyUnseen: $onlyUnseen
         );
 
         $this->importer->runOnce($filter);
 
         $io->success('Done.');
+
         return Command::SUCCESS;
     }
 }

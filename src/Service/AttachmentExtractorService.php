@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service;
@@ -11,8 +12,9 @@ use Webklex\PHPIMAP\Message;
 final readonly class AttachmentExtractorService
 {
     public function __construct(
-        private ImapConnectionService $connectionService
-    ) {}
+        private ImapConnectionService $connectionService,
+    ) {
+    }
 
     /**
      * Extract all PDF attachments from a message using multiple strategies.
@@ -60,21 +62,25 @@ final readonly class AttachmentExtractorService
         $candidates = [];
 
         // Try multiple attachment collection methods
-        try { $candidates[] = $this->toList($msg->getAttachments()); } catch (\Throwable) {}
+        try {
+            $candidates[] = $this->toList($msg->getAttachments());
+        } catch (\Throwable) {
+        }
 
         // Include inline attachments
         try {
             if (method_exists($msg, 'getInlineAttachments')) {
                 $candidates[] = $this->toList($msg->getInlineAttachments());
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         $attachments = [];
         foreach ($candidates as $list) {
             foreach ($list as $att) {
                 $this->forceLoadAttachmentBody($att);
                 [$filename, $mime, $bytes] = $this->normalizeAttachment($att);
-                if ($bytes !== null && $bytes !== '') {
+                if (null !== $bytes && '' !== $bytes) {
                     $attachments[] = [$filename, $mime, $bytes];
                 }
             }
@@ -108,7 +114,7 @@ final readonly class AttachmentExtractorService
                     $name = method_exists($a, 'getFilename') ? $a->getFilename() : 'attachment.pdf';
                     $mime = method_exists($a, 'getContentType') ? $a->getContentType() : null;
                     $data = method_exists($a, 'getContent') ? $a->getContent() : null;
-                    if (is_string($data) && $data !== '') {
+                    if (is_string($data) && '' !== $data) {
                         $attachments[] = [$this->sanitizeFilename($name), $mime, $data];
                     }
                 } catch (\Throwable) {
@@ -132,9 +138,9 @@ final readonly class AttachmentExtractorService
 
         // Build mailbox string
         $flags = '/imap';
-        if ($connectionParams['encryption'] === 'ssl') {
+        if ('ssl' === $connectionParams['encryption']) {
             $flags .= '/ssl';
-        } elseif ($connectionParams['encryption'] === 'tls') {
+        } elseif ('tls' === $connectionParams['encryption']) {
             $flags .= '/tls';
         }
 
@@ -160,15 +166,15 @@ final readonly class AttachmentExtractorService
                 return [];
             }
 
-            $structure = @imap_fetchstructure($imap, (int)$uid, FT_UID);
+            $structure = @imap_fetchstructure($imap, (int) $uid, FT_UID);
             if (!$structure) {
                 return [];
             }
 
             $attachments = [];
-            $this->collectImapParts($imap, (int)$uid, $structure, '', $attachments);
-            return $attachments;
+            $this->collectImapParts($imap, (int) $uid, $structure, '', $attachments);
 
+            return $attachments;
         } finally {
             $this->safeImapClose($imap);
         }
@@ -181,18 +187,19 @@ final readonly class AttachmentExtractorService
             if (method_exists($msg, 'getUid')) {
                 $uid = $msg->getUid();
                 if (is_int($uid) || is_string($uid)) {
-                    return (int)$uid;
+                    return (int) $uid;
                 }
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         // Try via Message-ID
         $messageId = $this->extractMessageId($msg);
         if ($messageId) {
             $needle = str_replace('"', '\"', $messageId);
-            $found = @imap_search($imap, 'HEADER Message-ID "' . $needle . '"', SE_UID);
+            $found = @imap_search($imap, 'HEADER Message-ID "'.$needle.'"', SE_UID);
             if (is_array($found) && !empty($found)) {
-                return (int)$found[0];
+                return (int) $found[0];
             }
         }
 
@@ -209,6 +216,7 @@ final readonly class AttachmentExtractorService
             if (method_exists($msg, 'getRawBody')) {
                 return $msg->getRawBody();
             }
+
             return $msg->getBody();
         } catch (\Throwable) {
             return null;
@@ -223,6 +231,7 @@ final readonly class AttachmentExtractorService
         if (class_exists(\eXorus\PhpMimeMailParser\Parser::class)) {
             return new \eXorus\PhpMimeMailParser\Parser();
         }
+
         return null;
     }
 
@@ -234,10 +243,13 @@ final readonly class AttachmentExtractorService
 
             $content = null;
             if (method_exists($att, 'getContent')) {
-                try { $content = $att->getContent(true); } catch (\Throwable) {}
+                try {
+                    $content = $att->getContent(true);
+                } catch (\Throwable) {
+                }
             }
 
-            if ($content === null) {
+            if (null === $content) {
                 $content = $this->callIfExists($att, ['content']);
             }
 
@@ -276,21 +288,28 @@ final readonly class AttachmentExtractorService
         if ($filename && str_ends_with(strtolower($filename), '.pdf')) {
             return true;
         }
-        if ($mime && stripos($mime, 'pdf') !== false) {
+        if ($mime && false !== stripos($mime, 'pdf')) {
             return true;
         }
-        return substr($bytes, 0, 5) === '%PDF-';
+
+        return '%PDF-' === substr($bytes, 0, 5);
     }
 
     private function forceLoadAttachmentBody(object $att): void
     {
         foreach (['loadContent', 'fetch', 'parse'] as $method) {
             if (method_exists($att, $method)) {
-                try { $att->$method(); } catch (\Throwable) {}
+                try {
+                    $att->$method();
+                } catch (\Throwable) {
+                }
             }
         }
         if (method_exists($att, 'getContent')) {
-            try { $att->getContent(true); } catch (\Throwable) {}
+            try {
+                $att->getContent(true);
+            } catch (\Throwable) {
+            }
         }
     }
 
@@ -305,13 +324,16 @@ final readonly class AttachmentExtractorService
         if (is_object($container)) {
             if (method_exists($container, 'all')) {
                 $all = $container->all();
+
                 return is_array($all) ? $all : ($all instanceof \Traversable ? iterator_to_array($all, false) : []);
             }
             if (method_exists($container, 'toArray')) {
                 $arr = $container->toArray();
+
                 return is_array($arr) ? $arr : [];
             }
         }
+
         return [];
     }
 
@@ -325,24 +347,27 @@ final readonly class AttachmentExtractorService
                 return $obj->$name;
             }
         }
+
         return null;
     }
 
     private function sanitizeFilename(?string $name): ?string
     {
-        if (!is_string($name) || $name === '') {
+        if (!is_string($name) || '' === $name) {
             return null;
         }
         $name = basename($name);
         $name = preg_replace('/[^\PC\s]/u', '', $name) ?? $name;
-        return $name !== '' ? $name : null;
+
+        return '' !== $name ? $name : null;
     }
 
     private function extractMessageId(Message $msg): ?string
     {
         try {
             $mid = $msg->getMessageId();
-            return is_string($mid) && $mid !== '' ? $mid : null;
+
+            return is_string($mid) && '' !== $mid ? $mid : null;
         } catch (\Throwable) {
             return null;
         }
@@ -353,9 +378,10 @@ final readonly class AttachmentExtractorService
         // Multipart: recurse into children
         if (isset($struct->parts) && is_array($struct->parts) && count($struct->parts) > 0) {
             foreach ($struct->parts as $i => $sub) {
-                $childNo = ($partNo === '') ? (string)($i + 1) : ($partNo . '.' . ($i + 1));
+                $childNo = ('' === $partNo) ? (string) ($i + 1) : ($partNo.'.'.($i + 1));
                 $this->collectImapParts($imap, $uid, $sub, $childNo, $out);
             }
+
             return;
         }
 
@@ -364,7 +390,7 @@ final readonly class AttachmentExtractorService
         $filename = null;
 
         if (isset($struct->disposition)) {
-            $disp = strtoupper((string)$struct->disposition);
+            $disp = strtoupper((string) $struct->disposition);
             if (in_array($disp, ['ATTACHMENT', 'INLINE'], true)) {
                 $isAttachment = true;
             }
@@ -385,19 +411,19 @@ final readonly class AttachmentExtractorService
             return;
         }
 
-        $section = ($partNo === '') ? '1' : $partNo;
+        $section = ('' === $partNo) ? '1' : $partNo;
         $body = @imap_fetchbody($imap, $uid, $section, FT_UID | FT_PEEK);
 
-        if ($body === false || $body === '') {
+        if (false === $body || '' === $body) {
             return;
         }
 
         // Decode transfer encoding
-        $encoding = isset($struct->encoding) ? (int)$struct->encoding : 0;
+        $encoding = isset($struct->encoding) ? (int) $struct->encoding : 0;
         switch ($encoding) {
             case 3: // base64
                 $decoded = base64_decode($body, true);
-                $body = ($decoded !== false) ? $decoded : '';
+                $body = (false !== $decoded) ? $decoded : '';
                 break;
             case 4: // quoted-printable
                 $body = quoted_printable_decode($body);
@@ -405,14 +431,14 @@ final readonly class AttachmentExtractorService
         }
 
         // Build MIME type
-        $primary = isset($struct->type) ? (int)$struct->type : 0;
-        $subtype = isset($struct->subtype) ? strtolower((string)$struct->subtype) : '';
+        $primary = isset($struct->type) ? (int) $struct->type : 0;
+        $subtype = isset($struct->subtype) ? strtolower((string) $struct->subtype) : '';
         $mime = 'application/octet-stream';
-        if ($primary === 3 && $subtype !== '') {
-            $mime = 'application/' . $subtype;
-        } elseif ($primary === 0 && $subtype !== '') {
-            $mime = 'text/' . $subtype;
-        } elseif ($subtype !== '') {
+        if (3 === $primary && '' !== $subtype) {
+            $mime = 'application/'.$subtype;
+        } elseif (0 === $primary && '' !== $subtype) {
+            $mime = 'text/'.$subtype;
+        } elseif ('' !== $subtype) {
             $mime = $subtype;
         }
 
@@ -426,7 +452,7 @@ final readonly class AttachmentExtractorService
     private function safeImapClose($imap): void
     {
         try {
-            if (is_object($imap) || (is_resource($imap) && get_resource_type($imap) === 'imap')) {
+            if (is_object($imap) || (is_resource($imap) && 'imap' === get_resource_type($imap))) {
                 @imap_close($imap);
             }
         } catch (\Throwable) {

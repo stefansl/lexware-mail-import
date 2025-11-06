@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Imap;
@@ -22,26 +23,27 @@ final class ImapConnectionFactory
         private readonly bool $validateCert,
         private readonly string $username,
         private readonly string $password,
-        private readonly string $protocol = 'imap' // keep 'imap' unless you really need 'imap/ssl' legacy
-    ) {}
+        private readonly string $protocol = 'imap', // keep 'imap' unless you really need 'imap/ssl' legacy
+    ) {
+    }
 
     /** Build and connect a Webklex client. */
     public function connect(): Client
     {
         // Map empty string to null for encryption
         $enc = $this->encryption;
-        if ($enc !== null) {
-            $enc = trim($enc) === '' ? null : strtolower(trim($enc));
+        if (null !== $enc) {
+            $enc = '' === trim($enc) ? null : strtolower(trim($enc));
         }
 
         $client = $this->manager->make([
-            'host'          => $this->host,
-            'port'          => $this->port,
-            'encryption'    => $enc,                 // null | 'ssl' | 'tls'
+            'host' => $this->host,
+            'port' => $this->port,
+            'encryption' => $enc,                 // null | 'ssl' | 'tls'
             'validate_cert' => $this->validateCert,  // true/false
-            'username'      => $this->username,
-            'password'      => $this->password,
-            'protocol'      => $this->protocol,      // 'imap'
+            'username' => $this->username,
+            'password' => $this->password,
+            'protocol' => $this->protocol,      // 'imap'
             // other optional keys: 'timeout', 'proxy', ...
         ]);
 

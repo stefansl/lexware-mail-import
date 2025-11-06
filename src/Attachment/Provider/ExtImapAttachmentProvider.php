@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Attachment\Provider;
@@ -18,32 +19,49 @@ final class ExtImapAttachmentProvider implements AttachmentProviderInterface
         private readonly ?string $encryption,
         private readonly string $username,
         private readonly string $password,
-    ) {}
+    ) {
+    }
 
     public function get(MessageReference $ref): iterable
     {
-        if (!function_exists('imap_open')) return;
+        if (!function_exists('imap_open')) {
+            return;
+        }
 
         $flags = '/imap';
-        if ($this->encryption === 'ssl') $flags .= '/ssl';
-        elseif ($this->encryption === 'tls') $flags .= '/tls';
+        if ('ssl' === $this->encryption) {
+            $flags .= '/ssl';
+        } elseif ('tls' === $this->encryption) {
+            $flags .= '/tls';
+        }
 
         $mailbox = sprintf('{%s:%d%s}%s', $this->host, $this->port, $flags, $ref->mailbox);
         $imap = @imap_open($mailbox, $this->username, $this->password, OP_READONLY, 1, [
             'DISABLE_AUTHENTICATOR' => 'GSSAPI',
         ]);
-        if (!$imap) return;
+        if (!$imap) {
+            return;
+        }
 
         try {
             $uid = $ref->uid ?? $this->resolveUid($imap, $ref);
-            if (!is_int($uid)) return;
+            if (!is_int($uid)) {
+                return;
+            }
 
             $struct = @imap_fetchstructure($imap, $uid, FT_UID);
-            if (!$struct) return;
+            if (!$struct) {
+                return;
+            }
 
             yield from $this->collectParts($imap, $uid, $struct, '');
         } finally {
-            try { if (is_object($imap) || is_resource($imap)) @imap_close($imap); } catch (\Throwable) {}
+            try {
+                if (is_object($imap) || is_resource($imap)) {
+                    @imap_close($imap);
+                }
+            } catch (\Throwable) {
+            }
         }
     }
 
@@ -52,24 +70,34 @@ final class ExtImapAttachmentProvider implements AttachmentProviderInterface
     {
         if (isset($struct->parts) && is_array($struct->parts) && $struct->parts) {
             foreach ($struct->parts as $i => $sub) {
-                $childNo = ($partNo === '') ? (string)($i + 1) : $partNo . '.' . ($i + 1);
+                $childNo = ('' === $partNo) ? (string) ($i + 1) : $partNo.'.'.($i + 1);
                 yield from $this->collectParts($imap, $uid, $sub, $childNo);
             }
+
             return;
         }
 
         [$isAttachment, $filename] = $this->isAttachment($struct);
-        if (!$isAttachment) return;
+        if (!$isAttachment) {
+            return;
+        }
 
-        $section = ($partNo === '') ? '1' : $partNo;
+        $section = ('' === $partNo) ? '1' : $partNo;
         $body = @imap_fetchbody($imap, $uid, $section, FT_UID | FT_PEEK);
-        if (!is_string($body) || $body === '') return;
+        if (!is_string($body) || '' === $body) {
+            return;
+        }
 
-        $encoding = isset($struct->encoding) ? (int)$struct->encoding : 0;
-        if ($encoding === 3) $body = base64_decode($body, true) ?: '';
-        elseif ($encoding === 4) $body = quoted_printable_decode($body);
+        $encoding = isset($struct->encoding) ? (int) $struct->encoding : 0;
+        if (3 === $encoding) {
+            $body = base64_decode($body, true) ?: '';
+        } elseif (4 === $encoding) {
+            $body = quoted_printable_decode($body);
+        }
 
-        if ($body === '' || strlen($body) > 25 * 1024 * 1024) return;
+        if ('' === $body || strlen($body) > 25 * 1024 * 1024) {
+            return;
+        }
 
         $mime = $this->guessMime($struct);
         yield new Attachment($this->sanitize($filename), $mime, $body);
@@ -77,59 +105,73 @@ final class ExtImapAttachmentProvider implements AttachmentProviderInterface
 
     private function isAttachment(object $struct): array
     {
-        $isAttachment = false; $filename = null;
+        $isAttachment = false;
+        $filename = null;
 
         if (isset($struct->disposition)) {
-            $disp = strtoupper((string)$struct->disposition);
-            if (in_array($disp, ['ATTACHMENT','INLINE'], true)) $isAttachment = true;
+            $disp = strtoupper((string) $struct->disposition);
+            if (in_array($disp, ['ATTACHMENT', 'INLINE'], true)) {
+                $isAttachment = true;
+            }
         }
-        foreach (['dparameters','parameters'] as $prop) {
+        foreach (['dparameters', 'parameters'] as $prop) {
             if (isset($struct->$prop) && is_array($struct->$prop)) {
                 foreach ($struct->$prop as $p) {
-                    if (isset($p->attribute) && in_array(strtoupper($p->attribute), ['NAME','FILENAME'], true)) {
-                        $filename = $p->value ?? $filename; $isAttachment = true;
+                    if (isset($p->attribute) && in_array(strtoupper($p->attribute), ['NAME', 'FILENAME'], true)) {
+                        $filename = $p->value ?? $filename;
+                        $isAttachment = true;
                     }
                 }
             }
         }
+
         return [$isAttachment, $filename];
     }
 
     private function guessMime(object $s): string
     {
-        $primary = isset($s->type) ? (int)$s->type : 0;
-        $sub = isset($s->subtype) ? strtolower((string)$s->subtype) : '';
+        $primary = isset($s->type) ? (int) $s->type : 0;
+        $sub = isset($s->subtype) ? strtolower((string) $s->subtype) : '';
+
         return match (true) {
-            $primary === 3 && $sub !== '' => 'application/' . $sub,
-            $primary === 0 && $sub !== '' => 'text/' . $sub,
-            $sub !== ''                   => $sub,
-            default                       => 'application/octet-stream',
+            3 === $primary && '' !== $sub => 'application/'.$sub,
+            0 === $primary && '' !== $sub => 'text/'.$sub,
+            '' !== $sub => $sub,
+            default => 'application/octet-stream',
         };
     }
 
     private function resolveUid($imap, MessageReference $ref): ?int
     {
         if ($ref->messageId) {
-            $needle = str_replace('"','\"',$ref->messageId);
+            $needle = str_replace('"', '\"', $ref->messageId);
             $found = @imap_search($imap, 'HEADER Message-ID "'.$needle.'"', SE_UID);
-            if (is_array($found) && $found) return (int)$found[0];
+            if (is_array($found) && $found) {
+                return (int) $found[0];
+            }
         }
 
         $subj = trim($ref->subject);
-        if ($subj !== '') {
+        if ('' !== $subj) {
             $on = $ref->receivedAt->format('d-M-Y');
-            $found = @imap_search($imap, sprintf('ON %s SUBJECT "%s"', $on, str_replace('"','\"',$subj)), SE_UID);
-            if (is_array($found) && $found) return (int)$found[0];
+            $found = @imap_search($imap, sprintf('ON %s SUBJECT "%s"', $on, str_replace('"', '\"', $subj)), SE_UID);
+            if (is_array($found) && $found) {
+                return (int) $found[0];
+            }
 
             $since = date('d-M-Y', strtotime('-60 days'));
-            $found = @imap_search($imap, sprintf('SINCE %s SUBJECT "%s"', $since, str_replace('"','\"',$subj)), SE_UID);
-            if (is_array($found) && $found) return (int)$found[0];
+            $found = @imap_search($imap, sprintf('SINCE %s SUBJECT "%s"', $since, str_replace('"', '\"', $subj)), SE_UID);
+            if (is_array($found) && $found) {
+                return (int) $found[0];
+            }
         }
 
-        if ($ref->fromAddress && $ref->fromAddress !== 'unknown@example.com') {
+        if ($ref->fromAddress && 'unknown@example.com' !== $ref->fromAddress) {
             $on = $ref->receivedAt->format('d-M-Y');
-            $found = @imap_search($imap, sprintf('FROM "%s" ON %s', str_replace('"','\"',$ref->fromAddress), $on), SE_UID);
-            if (is_array($found) && $found) return (int)$found[0];
+            $found = @imap_search($imap, sprintf('FROM "%s" ON %s', str_replace('"', '\"', $ref->fromAddress), $on), SE_UID);
+            if (is_array($found) && $found) {
+                return (int) $found[0];
+            }
         }
 
         return null;
@@ -137,9 +179,12 @@ final class ExtImapAttachmentProvider implements AttachmentProviderInterface
 
     private function sanitize(?string $name): ?string
     {
-        if (!is_string($name) || $name === '') return null;
+        if (!is_string($name) || '' === $name) {
+            return null;
+        }
         $name = basename($name);
         $name = preg_replace('/[^\PC\s]/u', '', $name) ?? $name;
-        return $name !== '' ? $name : null;
+
+        return '' !== $name ? $name : null;
     }
 }

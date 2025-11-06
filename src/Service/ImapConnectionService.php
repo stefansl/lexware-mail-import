@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service;
@@ -25,7 +26,8 @@ final readonly class ImapConnectionService
         private ?string $imapEncryption,
         private string $imapUsername,
         private string $imapPassword,
-    ) {}
+    ) {
+    }
 
     /**
      * @throws RuntimeException
@@ -39,13 +41,13 @@ final readonly class ImapConnectionService
     public function createClient(): Client
     {
         $client = $this->clientManager->make([
-            'host'          => $this->imapHost,
-            'port'          => $this->imapPort,
-            'encryption'    => $this->imapEncryption ?: null,
+            'host' => $this->imapHost,
+            'port' => $this->imapPort,
+            'encryption' => $this->imapEncryption ?: null,
             'validate_cert' => true,
-            'username'      => $this->imapUsername,
-            'password'      => $this->imapPassword,
-            'protocol'      => 'imap',
+            'username' => $this->imapUsername,
+            'password' => $this->imapPassword,
+            'protocol' => 'imap',
         ]);
         $client->connect();
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Imap;
@@ -6,17 +7,9 @@ namespace App\Imap;
 use App\Contract\MessageFetcherInterface;
 use App\DTO\ImapFetchFilter;
 use App\Mail\FromAddressResolver;
-use DateTimeImmutable;
-use DateTimeInterface;
 use Generator;
-use RuntimeException;
-use Throwable;
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\Message;
-
-use function is_int;
-use function is_iterable;
-use function is_string;
 
 /**
  * Fetches messages via Webklex and yields MessageReference objects.
@@ -33,16 +26,18 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
         private readonly FromAddressResolver $fromResolver,
     ) {
         // Guard: default mailbox must be provided
-        if ($this->defaultMailbox === '') {
-            throw new RuntimeException('IMAP_MAILBOX must be set (e.g., "INBOX").');
+        if ('' === $this->defaultMailbox) {
+            throw new \RuntimeException('IMAP_MAILBOX must be set (e.g., "INBOX").');
         }
     }
 
-    /** @return Generator<MessageReference> */
-    public function fetch(ImapFetchFilter $filter): Generator
+    /** @return \Generator<MessageReference> */
+    public function fetch(ImapFetchFilter $filter): \Generator
     {
         // Ensure this function is always a generator, even on early-return paths.
-        if (false) { yield; }
+        if (false) {
+            yield;
+        }
 
         // Guard: establish connection
         $client = $this->factory->connect();
@@ -53,8 +48,8 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
 
         // Resolve mailbox (filter override > default)
         $mailbox = $filter->mailbox ?: $this->defaultMailbox;
-        $folder  = $client->getFolder($mailbox);
-        if ($folder === null) {
+        $folder = $client->getFolder($mailbox);
+        if (null === $folder) {
             return; // mailbox not found; return an empty generator
         }
 
@@ -62,23 +57,23 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
         $query = $folder->query();
 
         // Date filter (guarded default)
-        $since = $filter->since ?? new DateTimeImmutable('-7 days');
+        $since = $filter->since ?? new \DateTimeImmutable('-7 days');
         $query->since($since);
 
         // Seen / Unseen
-        if ($filter->onlyUnseen === true || ($filter->onlyUnseen === null && strcasecmp($this->defaultSearch, 'UNSEEN') === 0)) {
+        if (true === $filter->onlyUnseen || (null === $filter->onlyUnseen && 0 === strcasecmp($this->defaultSearch, 'UNSEEN'))) {
             $query->unseen();
-        } elseif ($filter->onlyUnseen === false) {
+        } elseif (false === $filter->onlyUnseen) {
             $query->seen();
         }
 
         $messages = $query->get();
-        if (!is_iterable($messages)) {
+        if (!\is_iterable($messages)) {
             return; // nothing to yield
         }
 
-        $emitted   = 0;
-        $hardLimit = max(1, ($filter->limit ?? 50));
+        $emitted = 0;
+        $hardLimit = max(1, $filter->limit ?? 50);
 
         /** @var Message $msg */
         foreach ($messages as $msg) {
@@ -87,17 +82,17 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
             }
 
             // Extract core fields
-            $subject = (string)($msg->getSubject() ?? '(no subject)');
-            $from    = $this->fromResolver->resolve($msg);
-            $mid     = $this->safeMessageId($msg);
-            $date    = $this->safeDate($msg);
-            $uid     = $this->safeUid($msg);
+            $subject = (string) ($msg->getSubject() ?? '(no subject)');
+            $from = $this->fromResolver->resolve($msg);
+            $mid = $this->safeMessageId($msg);
+            $date = $this->safeDate($msg);
+            $uid = $this->safeUid($msg);
 
             // Optional client-side refinements
-            if ($filter->fromContains && stripos($from, $filter->fromContains) === false) {
+            if ($filter->fromContains && false === stripos($from, $filter->fromContains)) {
                 continue;
             }
-            if ($filter->subjectContains && stripos($subject, $filter->subjectContains) === false) {
+            if ($filter->subjectContains && false === stripos($subject, $filter->subjectContains)) {
                 continue;
             }
 
@@ -111,7 +106,7 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
                 mailbox: $mailbox,
             );
 
-            $emitted++;
+            ++$emitted;
         }
     }
 
@@ -120,15 +115,16 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
     {
         try {
             $uid = $msg->getUid();
-            if (is_int($uid)) {
+            if (\is_int($uid)) {
                 return $uid;
             }
-            if (is_string($uid) && ctype_digit($uid)) {
+            if (\is_string($uid) && ctype_digit($uid)) {
                 return (int) $uid;
             }
-        } catch (Throwable) {
+        } catch (\Throwable) {
             // ignore and return null
         }
+
         return null;
     }
 
@@ -137,26 +133,28 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
     {
         try {
             $mid = $msg->getMessageId();
-            return is_string($mid) && $mid !== '' ? $mid : null;
-        } catch (Throwable) {
+
+            return \is_string($mid) && '' !== $mid ? $mid : null;
+        } catch (\Throwable) {
             return null;
         }
     }
 
     /** Return a safe received date (falls back to "now" if provider returns nothing). */
-    private function safeDate(Message $msg): DateTimeImmutable
+    private function safeDate(Message $msg): \DateTimeImmutable
     {
         try {
             $raw = $msg->getDate();
-            if ($raw instanceof DateTimeInterface) {
-                return DateTimeImmutable::createFromInterface($raw);
+            if ($raw instanceof \DateTimeInterface) {
+                return \DateTimeImmutable::createFromInterface($raw);
             }
-            if (is_string($raw) && $raw !== '') {
-                return new DateTimeImmutable($raw);
+            if (\is_string($raw) && '' !== $raw) {
+                return new \DateTimeImmutable($raw);
             }
-        } catch (Throwable) {
+        } catch (\Throwable) {
             // fall through
         }
-        return new DateTimeImmutable();
+
+        return new \DateTimeImmutable();
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Entity;
@@ -56,38 +57,140 @@ class ImportedPdf
     #[ORM\Column(name: 'file_hash', type: 'string', length: 64, nullable: true)]
     private ?string $fileHash = null;
 
-    public function getId(): ?int { return $this->id; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
 
-    public function getMail(): ImportedMail { return $this->mail; }
-    public function setMail(ImportedMail $mail): self { $this->mail = $mail; return $this; }
+    public function getMail(): ImportedMail
+    {
+        return $this->mail;
+    }
 
-    public function getOriginalFilename(): string { return $this->originalFilename; }
-    public function setOriginalFilename(string $name): self { $this->originalFilename = $name; return $this; }
+    public function setMail(ImportedMail $mail): self
+    {
+        $this->mail = $mail;
 
-    public function getStoredPath(): string { return $this->storedPath; }
-    public function setStoredPath(string $path): self { $this->storedPath = $path; return $this; }
+        return $this;
+    }
 
-    public function getImportedAt(): \DateTimeImmutable { return $this->importedAt; }
-    public function setImportedAt(\DateTimeImmutable $at): self { $this->importedAt = $at; return $this; }
+    public function getOriginalFilename(): string
+    {
+        return $this->originalFilename;
+    }
 
-    public function isSynced(): bool { return $this->synced; }
-    public function setSynced(bool $synced): self { $this->synced = $synced; return $this; }
+    public function setOriginalFilename(string $name): self
+    {
+        $this->originalFilename = $name;
 
-    public function getLexwareFileId(): ?string { return $this->lexwareFileId; }
-    public function setLexwareFileId(?string $id): self { $this->lexwareFileId = $id; return $this; }
+        return $this;
+    }
 
-    public function getLexwareVoucherId(): ?string { return $this->lexwareVoucherId; }
-    public function setLexwareVoucherId(?string $id): self { $this->lexwareVoucherId = $id; return $this; }
+    public function getStoredPath(): string
+    {
+        return $this->storedPath;
+    }
 
-    public function getLastError(): ?string { return $this->lastError; }
-    public function setLastError(?string $e): self { $this->lastError = $e; return $this; }
+    public function setStoredPath(string $path): self
+    {
+        $this->storedPath = $path;
 
-    public function getSize(): ?int { return $this->size; }
-    public function setSize(?int $size): self { $this->size = $size; return $this; }
+        return $this;
+    }
 
-    public function getMime(): ?string { return $this->mime; }
-    public function setMime(?string $mime): self { $this->mime = $mime; return $this; }
+    public function getImportedAt(): \DateTimeImmutable
+    {
+        return $this->importedAt;
+    }
 
-    public function getFileHash(): ?string { return $this->fileHash; }
-    public function setFileHash(?string $hash): self { $this->fileHash = $hash; return $this; }
+    public function setImportedAt(\DateTimeImmutable $at): self
+    {
+        $this->importedAt = $at;
+
+        return $this;
+    }
+
+    public function isSynced(): bool
+    {
+        return $this->synced;
+    }
+
+    public function setSynced(bool $synced): self
+    {
+        $this->synced = $synced;
+
+        return $this;
+    }
+
+    public function getLexwareFileId(): ?string
+    {
+        return $this->lexwareFileId;
+    }
+
+    public function setLexwareFileId(?string $id): self
+    {
+        $this->lexwareFileId = $id;
+
+        return $this;
+    }
+
+    public function getLexwareVoucherId(): ?string
+    {
+        return $this->lexwareVoucherId;
+    }
+
+    public function setLexwareVoucherId(?string $id): self
+    {
+        $this->lexwareVoucherId = $id;
+
+        return $this;
+    }
+
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
+    }
+
+    public function setLastError(?string $e): self
+    {
+        $this->lastError = $e;
+
+        return $this;
+    }
+
+    public function getSize(): ?int
+    {
+        return $this->size;
+    }
+
+    public function setSize(?int $size): self
+    {
+        $this->size = $size;
+
+        return $this;
+    }
+
+    public function getMime(): ?string
+    {
+        return $this->mime;
+    }
+
+    public function setMime(?string $mime): self
+    {
+        $this->mime = $mime;
+
+        return $this;
+    }
+
+    public function getFileHash(): ?string
+    {
+        return $this->fileHash;
+    }
+
+    public function setFileHash(?string $hash): self
+    {
+        $this->fileHash = $hash;
+
+        return $this;
+    }
 }

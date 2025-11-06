@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Attachment;
@@ -9,7 +10,9 @@ use App\Imap\MessageReference;
 final class AttachmentChainProvider implements AttachmentProviderInterface
 {
     /** @param AttachmentProviderInterface[] $providers */
-    public function __construct(private readonly array $providers) {}
+    public function __construct(private readonly array $providers)
+    {
+    }
 
     public function get(MessageReference $ref): iterable
     {
@@ -19,7 +22,9 @@ final class AttachmentChainProvider implements AttachmentProviderInterface
                 $yielded = true;
                 yield $att;
             }
-            if ($yielded) return;
+            if ($yielded) {
+                return;
+            }
         }
     }
 }

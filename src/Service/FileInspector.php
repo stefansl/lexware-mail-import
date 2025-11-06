@@ -22,7 +22,7 @@ final readonly class FileInspector implements FileInspectorInterface
         }
 
         $size = filesize($path) ?: 0;
-        if ($size === 0) {
+        if (0 === $size) {
             return ['ok' => false, 'reason' => 'empty_file', 'size' => 0];
         }
         if ($size > $this->maxBytes) {
@@ -33,11 +33,11 @@ final readonly class FileInspector implements FileInspectorInterface
         $mime = $fi->file($path) ?: 'application/octet-stream';
 
         $ok = in_array($mime, $this->allowedMimes, true) && (
-                $mime !== 'application/pdf' || $this->looksLikePdf($path)
-            );
+            'application/pdf' !== $mime || $this->looksLikePdf($path)
+        );
 
         if (!$ok) {
-            return ['ok' => false, 'reason' => 'unsupported_mime_' . $mime, 'mime' => $mime, 'size' => $size];
+            return ['ok' => false, 'reason' => 'unsupported_mime_'.$mime, 'mime' => $mime, 'size' => $size];
         }
 
         return ['ok' => true, 'mime' => $mime, 'size' => $size];
@@ -51,6 +51,7 @@ final readonly class FileInspector implements FileInspectorInterface
         }
         $head = fread($h, 5) ?: '';
         fclose($h);
-        return $head === '%PDF-';
+
+        return '%PDF-' === $head;
     }
 }

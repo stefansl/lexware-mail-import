@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Persistence;
@@ -18,18 +19,20 @@ final class MailPersister implements MailPersisterInterface
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly PdfStorage $storage,
-    ) {}
+    ) {
+    }
 
     public function persistMail(ImportedMail $mail): ImportedMail
     {
         $this->em->persist($mail);
+
         return $mail;
     }
 
     public function persistPdf(ImportedMail $mail, Attachment $att): ImportedPdf
     {
         $bytes = $att->bytes;
-        $hash  = hash('sha256', $bytes);
+        $hash = hash('sha256', $bytes);
 
         $existing = $this->em->getRepository(ImportedPdf::class)->findOneBy(['fileHash' => $hash]);
         if ($existing) {
@@ -49,6 +52,7 @@ final class MailPersister implements MailPersisterInterface
         $pdf->setFileHash($hash);
 
         $this->em->persist($pdf);
+
         return $pdf;
     }
 

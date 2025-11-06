@@ -1,15 +1,16 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Attachment\AttachmentChainProvider;
 use App\Contract\ImporterInterface;
+use App\Detection\PdfDetector;
 use App\DTO\ImapFetchFilter;
 use App\Entity\ImportedMail;
 use App\Entity\ImportedPdf;
 use App\Imap\WebklexMessageFetcher;
-use App\Attachment\AttachmentChainProvider;
-use App\Detection\PdfDetector;
 use App\Persistence\MailPersister;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -37,7 +38,8 @@ final class Importer implements ImporterInterface
         private readonly ErrorNotifier $notifier,
         #[Autowire(service: 'monolog.logger.importer')]
         private readonly LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     public function runOnce(?ImapFetchFilter $filter = null): void
     {
@@ -55,11 +57,11 @@ final class Importer implements ImporterInterface
 
             // Log at NOTICE level so it appears in var/log/importer.log
             $this->logger->notice('mail imported', [
-                'subject'    => $mail->getSubject(),
-                'from'       => $mail->getFromAddress(),
+                'subject' => $mail->getSubject(),
+                'from' => $mail->getFromAddress(),
                 'message_id' => $mail->getMessageId(),
-                'received'   => $mail->getReceivedAt()?->format(DATE_ATOM),
-                'mailbox'    => $ref->mailbox ?? null,
+                'received' => $mail->getReceivedAt()?->format(DATE_ATOM),
+                'mailbox' => $ref->mailbox ?? null,
             ]);
 
             // Collect imported PDFs for subsequent upload
@@ -99,9 +101,9 @@ final class Importer implements ImporterInterface
                     $pdf->setLexwareVoucherId($res['voucherId'] ?? null);
                     $pdf->setLastError(null);
                     $this->logger->info('upload ok', [
-                        'file'         => $pdf->getStoredPath(),
+                        'file' => $pdf->getStoredPath(),
                         'lexware_file' => $pdf->getLexwareFileId(),
-                        'voucher_id'   => $pdf->getLexwareVoucherId(),
+                        'voucher_id' => $pdf->getLexwareVoucherId(),
                     ]);
                 } catch (\Throwable $e) {
                     // Mark as failed and notify
@@ -112,7 +114,7 @@ final class Importer implements ImporterInterface
                         sprintf("File: %s\nError: %s", $pdf->getStoredPath(), $e->getMessage())
                     );
                     $this->logger->error('upload failed', [
-                        'file'  => $pdf->getStoredPath(),
+                        'file' => $pdf->getStoredPath(),
                         'error' => $e->getMessage(),
                         'class' => $e::class,
                         'trace' => $e->getTraceAsString(),
