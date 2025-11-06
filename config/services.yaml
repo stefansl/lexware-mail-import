@@ -91,6 +91,10 @@ services:
             $maxBytes: '%app.upload_max_bytes%'
             $allowedMimes: '%app.allowed_mimes%'
 
+    App\Service\Importer:
+        arguments:
+            $logger: '@monolog.logger.importer'
+
     # Pdf storage: inject storage directory
     App\Service\PdfStorage:
         arguments:

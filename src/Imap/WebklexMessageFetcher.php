@@ -8,6 +8,8 @@ use App\Contract\MessageFetcherInterface;
 use App\DTO\ImapFetchFilter;
 use Generator;
 use Monolog\Logger;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Webklex\PHPIMAP\Exceptions\AuthFailedException;
 use Webklex\PHPIMAP\Exceptions\ConnectionFailedException;
 use Webklex\PHPIMAP\Exceptions\ImapBadRequestException;
@@ -24,7 +26,8 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
 {
     public function __construct(
         private readonly ImapConnectionFactory $factory,
-        private readonly Logger $logger,
+        #[Autowire(service: 'monolog.logger.importer')]
+        private readonly LoggerInterface $logger,
         private readonly string $defaultMailbox,
         private readonly string $defaultSearch
     ) {
