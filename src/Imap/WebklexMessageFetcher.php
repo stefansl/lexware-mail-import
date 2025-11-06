@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Imap;
@@ -7,7 +8,6 @@ use App\Contract\MessageFetcherInterface;
 use App\DTO\ImapFetchFilter;
 use Generator;
 use Monolog\Logger;
-use Psr\Log\LoggerInterface;
 use Webklex\PHPIMAP\Exceptions\AuthFailedException;
 use Webklex\PHPIMAP\Exceptions\ConnectionFailedException;
 use Webklex\PHPIMAP\Exceptions\ImapBadRequestException;
@@ -39,9 +39,9 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
         try {
             $client = $this->factory->create();
         } catch (AuthFailedException|ConnectionFailedException|ImapBadRequestException|ImapServerErrorException|MaskNotFoundException|ResponseException|RuntimeException $e) {
-            $this->logger->error('IMAP connection error: '.$e->getMessage());
+            $this->logger->error('IMAP connection error: ' . $e->getMessage());
         }
-        $wanted  = $filter->mailbox ?: $this->defaultMailbox;
+        $wanted = $filter->mailbox ?: $this->defaultMailbox;
 
         $folder = $this->resolveFolder($client, $wanted);
 
@@ -61,7 +61,9 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
         $limit = $filter->limit ?? 50;
 
         foreach ($messages as $msg) {
-            if ($count >= $limit) break;
+            if ($count >= $limit) {
+                break;
+            }
 
             $subjRaw = (string)($msg->getSubject() ?? '');
             $subject = \function_exists('mb_decode_mimeheader') ? \mb_decode_mimeheader($subjRaw) : $subjRaw;
@@ -76,8 +78,8 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
             }
 
             $messageId = $this->safeGetMessageId($msg);
-            $date      = $this->safeGetDate($msg);
-            $uid       = $this->safeGetUid($msg);
+            $date = $this->safeGetDate($msg);
+            $uid = $this->safeGetUid($msg);
 
             yield new MessageRef(
                 vendorMessage: $msg,
@@ -148,7 +150,9 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
             // ignore
         }
 
-        $hint = $available ? (' Available folders: ' . \implode(', ', \array_slice($available, 0, 20)) . (count($available) > 20 ? ', …' : '')) : '';
+        $hint = $available ? (' Available folders: ' . \implode(', ', \array_slice($available, 0, 20)) . (count(
+                $available
+            ) > 20 ? ', …' : '')) : '';
         throw new \RuntimeException(sprintf('IMAP mailbox "%s" not found.%s', $wanted, $hint));
     }
 
@@ -156,51 +160,71 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
     {
         try {
             $list = $msg->getFrom();
-            if ($list instanceof \Traversable) $list = iterator_to_array($list);
+            if ($list instanceof \Traversable) {
+                $list = iterator_to_array($list);
+            }
             if (\is_array($list)) {
                 foreach ($list as $p) {
                     if (\is_object($p)) {
                         $email = $p->mail ?? $p->address ?? null;
                         if (!$email && isset($p->mailbox, $p->host) && $p->mailbox && $p->host) {
-                            $email = $p->mailbox.'@'.$p->host;
+                            $email = $p->mailbox . '@' . $p->host;
                         }
-                        if (\is_string($email) && $email !== '') return $email;
+                        if (\is_string($email) && $email !== '') {
+                            return $email;
+                        }
                     }
                 }
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
         try {
             $raw = $msg->getHeader()?->get('from');
             if ($raw) {
                 $value = \method_exists($raw, 'getValue') ? $raw->getValue() : $raw->getRaw();
                 if (\is_string($value) && $value !== '') {
-                    if (\preg_match('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $value, $m)) return $m[0];
+                    if (\preg_match('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $value, $m)) {
+                        return $m[0];
+                    }
                     return $value;
                 }
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
         return '';
     }
 
     private function safeGetMessageId(object $msg): ?string
     {
-        try { $mid = $msg->getMessageId(); return \is_string($mid) && $mid !== '' ? $mid : null; }
-        catch (\Throwable) { return null; }
+        try {
+            $mid = $msg->getMessageId();
+            return \is_string($mid) && $mid !== '' ? $mid : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function safeGetDate(object $msg): \DateTimeImmutable
     {
         try {
             $raw = $msg->getDate();
-            if ($raw instanceof \DateTimeInterface) return \DateTimeImmutable::createFromInterface($raw);
-            if (\is_string($raw) && $raw !== '') return new \DateTimeImmutable($raw);
-        } catch (\Throwable) {}
+            if ($raw instanceof \DateTimeInterface) {
+                return \DateTimeImmutable::createFromInterface($raw);
+            }
+            if (\is_string($raw) && $raw !== '') {
+                return new \DateTimeImmutable($raw);
+            }
+        } catch (\Throwable) {
+        }
         return new \DateTimeImmutable();
     }
 
     private function safeGetUid(object $msg): ?int
     {
-        try { return \method_exists($msg, 'getUid') ? (int)$msg->getUid() : null; }
-        catch (\Throwable) { return null; }
+        try {
+            return \method_exists($msg, 'getUid') ? (int)$msg->getUid() : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }
