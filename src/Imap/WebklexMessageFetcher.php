@@ -5,6 +5,16 @@ namespace App\Imap;
 
 use App\Contract\MessageFetcherInterface;
 use App\DTO\ImapFetchFilter;
+use Generator;
+use Monolog\Logger;
+use Psr\Log\LoggerInterface;
+use Webklex\PHPIMAP\Exceptions\AuthFailedException;
+use Webklex\PHPIMAP\Exceptions\ConnectionFailedException;
+use Webklex\PHPIMAP\Exceptions\ImapBadRequestException;
+use Webklex\PHPIMAP\Exceptions\ImapServerErrorException;
+use Webklex\PHPIMAP\Exceptions\MaskNotFoundException;
+use Webklex\PHPIMAP\Exceptions\ResponseException;
+use Webklex\PHPIMAP\Exceptions\RuntimeException;
 
 /**
  * Fetches messages via Webklex and yields MessageRef objects.
@@ -14,6 +24,7 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
 {
     public function __construct(
         private readonly ImapConnectionFactory $factory,
+        private readonly Logger $logger,
         private readonly string $defaultMailbox,
         private readonly string $defaultSearch
     ) {
@@ -22,10 +33,14 @@ final class WebklexMessageFetcher implements MessageFetcherInterface
         }
     }
 
-    /** @return \Generator<MessageRef> */
-    public function fetch(ImapFetchFilter $filter): \Generator
+    /** @return Generator<MessageRef> */
+    public function fetch(ImapFetchFilter $filter): Generator
     {
-        $client  = $this->factory->create();
+        try {
+            $client = $this->factory->create();
+        } catch (AuthFailedException|ConnectionFailedException|ImapBadRequestException|ImapServerErrorException|MaskNotFoundException|ResponseException|RuntimeException $e) {
+            $this->logger->error('IMAP connection error: '.$e->getMessage());
+        }
         $wanted  = $filter->mailbox ?: $this->defaultMailbox;
 
         $folder = $this->resolveFolder($client, $wanted);
