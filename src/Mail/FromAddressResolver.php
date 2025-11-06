@@ -76,6 +76,7 @@ final class FromAddressResolver
      */
     private function fromHeader(Message $msg): ?string
     {
+        // Guard: fetch header container
         try {
             $hdr = $msg->getHeader();
         } catch (\Throwable $e) {
@@ -85,55 +86,68 @@ final class FromAddressResolver
         }
 
         if (null === $hdr) {
-            return null; // guard: no headers at all
+            return null; // no headers present
         }
 
-        // Webklex typically returns an Attribute-like object with getValue()
-        try {
-            $fromHeader = $hdr->get('from');
-        } catch (\Throwable $e) {
-            $this->logger->debug('from header access failed', ['error' => $e->getMessage()]);
+        // Helper to read a single header value safely without string-casting the container
+        $readHeaderValue = static function ($headerObj): ?string {
+            // Webklex returns an Attribute-like object with getValue() for a single field
+            if (\is_object($headerObj) && \method_exists($headerObj, 'getValue')) {
+                $val = $headerObj->getValue();
 
-            return null;
-        }
+                return \is_string($val) && '' !== $val ? $val : null;
+            }
 
-        // Safely obtain the actual header string: prefer getValue(), else string-cast
-        $value = null;
-        if (\is_object($fromHeader) && \method_exists($fromHeader, 'getValue')) {
-            $value = $fromHeader->getValue();
-        } elseif (\is_string($fromHeader)) {
-            $value = $fromHeader;
-        } else {
-            // Fallback: best-effort string cast (covers objects with __toString)
-            $value = (string) $fromHeader;
-        }
+            // Some versions may return a scalar already
+            if (\is_string($headerObj) && '' !== $headerObj) {
+                return $headerObj;
+            }
 
-        if (!\is_string($value) || '' === $value) {
-            // As a last resort, try the entire header block (toString) and grep the From-line
-            try {
-                $all = \method_exists($hdr, 'toString') ? $hdr->toString() : (string) $hdr;
-                if (\is_string($all) && '' !== $all) {
-                    // naive From-line extraction
-                    if (\preg_match('/^From:\s*(.+)$/im', $all, $m)) {
-                        $value = $m[1] ?? '';
+            // Some versions may return an array of values; try the first non-empty string
+            if (\is_array($headerObj)) {
+                foreach ($headerObj as $v) {
+                    if (\is_string($v) && '' !== $v) {
+                        return $v;
+                    }
+                    if (\is_object($v) && \method_exists($v, 'getValue')) {
+                        $vv = $v->getValue();
+                        if (\is_string($vv) && '' !== $vv) {
+                            return $vv;
+                        }
                     }
                 }
+            }
+
+            return null;
+        };
+
+        // Try primary "from", then fall back to "reply-to" and "sender"
+        $candidates = ['from', 'reply-to', 'sender'];
+        $value = null;
+
+        foreach ($candidates as $name) {
+            try {
+                $h = $hdr->get($name);
             } catch (\Throwable) {
-                // ignore; return null below
+                $h = null; // header field not accessible; continue trying
+            }
+            $value = $readHeaderValue($h);
+            if (\is_string($value) && '' !== $value) {
+                break;
             }
         }
 
         if (!\is_string($value) || '' === $value) {
-            return null;
+            return null; // nothing usable found; caller will apply fallback
         }
 
-        // Extract the first RFC-ish email
+        // Extract the first RFC-ish email from the header value
         if (\preg_match('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $value, $m)) {
             return \strtolower($m[0]);
         }
 
         // Not exceptional; log for diagnostics and return null to allow fallback.
-        $this->logger->info('from header present but no email found', ['raw' => $value]);
+        $this->logger->info('from-like header present but no email found', ['raw' => $value]);
 
         return null;
     }

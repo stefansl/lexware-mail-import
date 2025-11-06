@@ -7,6 +7,7 @@ namespace App\Attachment\Provider;
 use App\Attachment\Attachment;
 use App\Attachment\AttachmentProviderInterface;
 use App\Imap\MessageReference;
+use PhpMimeMailParser\Parser;
 
 /**
  * Fallback provider: parses raw RFC822 if available, using php-mime-mail-parser.
@@ -63,11 +64,8 @@ final class RawMimeAttachmentProvider implements AttachmentProviderInterface
 
     private function makeParser(): ?object
     {
-        if (class_exists(\PhpMimeMailParser\Parser::class)) {
-            return new \PhpMimeMailParser\Parser();
-        }
-        if (class_exists(\eXorus\PhpMimeMailParser\Parser::class)) {
-            return new \eXorus\PhpMimeMailParser\Parser();
+        if (class_exists(Parser::class)) {
+            return new Parser();
         }
 
         return null;

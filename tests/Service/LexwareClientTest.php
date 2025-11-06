@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Tests\Service;
@@ -18,8 +19,11 @@ final class LexwareClientTest extends TestCase
     private function tempPdf(): string
     {
         $path = tempnam(sys_get_temp_dir(), 'lx_');
-        if ($path === false) self::fail('tempnam failed');
+        if (false === $path) {
+            self::fail('tempnam failed');
+        }
         file_put_contents($path, "%PDF-1.4\nbody");
+
         return $path;
     }
 
@@ -27,7 +31,7 @@ final class LexwareClientTest extends TestCase
         HttpClientInterface $http,
         FileInspectorInterface $inspector,
         LoggerInterface $logger,
-        int $maxAttempts = 3
+        int $maxAttempts = 3,
     ): LexwareClient {
         return new LexwareClient(
             httpClient: $http,
@@ -84,7 +88,9 @@ final class LexwareClientTest extends TestCase
             $json = $client->uploadVoucherFile($file);
             self::assertSame('F123', $json['id']);
             self::assertSame('V999', $json['voucherId']);
-        } finally { @unlink($file); }
+        } finally {
+            @unlink($file);
+        }
     }
 
     public function testConflict409ReturnsJson(): void
@@ -105,7 +111,9 @@ final class LexwareClientTest extends TestCase
         try {
             $json = $client->uploadVoucherFile($file);
             self::assertSame('dup', $json['id']);
-        } finally { @unlink($file); }
+        } finally {
+            @unlink($file);
+        }
     }
 
     public function testNotAcceptable406ThrowsLexwareHttpException(): void
@@ -126,7 +134,9 @@ final class LexwareClientTest extends TestCase
         try {
             $this->expectException(LexwareHttpException::class);
             $client->uploadVoucherFile($file);
-        } finally { @unlink($file); }
+        } finally {
+            @unlink($file);
+        }
     }
 
     public function testTransportExceptionRetriesThenFails(): void
@@ -137,8 +147,9 @@ final class LexwareClientTest extends TestCase
 
         $inspector->method('validateVoucherUpload')->willReturn(['ok' => true, 'mime' => 'application/pdf', 'size' => 10]);
 
-        $http->method('request')->willReturnCallback(function() {
-            static $i = 0; $i++;
+        $http->method('request')->willReturnCallback(function () {
+            static $i = 0;
+            ++$i;
             if ($i < 3) {
                 $ex = $this->createMock(TransportExceptionInterface::class);
                 $ex->method('getMessage')->willReturn('network down');
@@ -148,6 +159,7 @@ final class LexwareClientTest extends TestCase
             $resp->method('getStatusCode')->willReturn(200);
             $resp->method('getContent')->with(false)->willReturn('{"id":"ok"}');
             $resp->method('toArray')->with(false)->willReturn(['id' => 'ok']);
+
             return $resp;
         });
 
@@ -156,7 +168,9 @@ final class LexwareClientTest extends TestCase
         try {
             $json = $client->uploadVoucherFile($file);
             self::assertSame('ok', $json['id']);
-        } finally { @unlink($file); }
+        } finally {
+            @unlink($file);
+        }
     }
 
     public function testTransientHttpRetriesThenThrows(): void
@@ -177,6 +191,8 @@ final class LexwareClientTest extends TestCase
         try {
             $this->expectException(LexwareHttpException::class);
             $client->uploadVoucherFile($file);
-        } finally { @unlink($file); }
+        } finally {
+            @unlink($file);
+        }
     }
 }
