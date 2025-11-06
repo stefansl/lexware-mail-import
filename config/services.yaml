@@ -1,6 +1,3 @@
-# config/services.yaml
-# All comments in English
-
 parameters:
     app.pdf_storage_dir: '%kernel.project_dir%/var/uploads/lexware'
     app.upload_max_bytes: 5242880 # 5MB default
