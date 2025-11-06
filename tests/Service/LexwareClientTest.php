@@ -27,8 +27,7 @@ final class LexwareClientTest extends TestCase
         HttpClientInterface $http,
         FileInspectorInterface $inspector,
         LoggerInterface $logger,
-        int $maxAttempts = 3,
-        int $baseSleepMs = 0
+        int $maxAttempts = 3
     ): LexwareClient {
         return new LexwareClient(
             httpClient: $http,
@@ -39,7 +38,7 @@ final class LexwareClientTest extends TestCase
             tenant: 'tenant-1',
             uploadEndpoint: '/v1/files',
             maxAttempts: $maxAttempts,
-            baseSleepMs: $baseSleepMs,
+            baseSleepMs: 0,
         );
     }
 
@@ -152,7 +151,7 @@ final class LexwareClientTest extends TestCase
             return $resp;
         });
 
-        $client = $this->makeClient($http, $inspector, $logger, maxAttempts: 3, baseSleepMs: 0);
+        $client = $this->makeClient($http, $inspector, $logger, maxAttempts: 3);
         $file = $this->tempPdf();
         try {
             $json = $client->uploadVoucherFile($file);
@@ -173,7 +172,7 @@ final class LexwareClientTest extends TestCase
 
         $http->method('request')->willReturn($resp);
 
-        $client = $this->makeClient($http, $inspector, $logger, maxAttempts: 2, baseSleepMs: 0);
+        $client = $this->makeClient($http, $inspector, $logger, maxAttempts: 2);
         $file = $this->tempPdf();
         try {
             $this->expectException(LexwareHttpException::class);
