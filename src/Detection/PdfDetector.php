@@ -11,8 +11,13 @@ final class PdfDetector implements PdfDetectorInterface
 {
     public function isPdf(Attachment $a): bool
     {
-        if ($a->filename && str_ends_with(strtolower($a->filename), '.pdf')) return true;
-        if ($a->mime && stripos($a->mime, 'pdf') !== false) return true;
+        if ($a->filename && str_ends_with(strtolower($a->filename), '.pdf')) {
+            return true;
+        }
+        if ($a->mime && stripos($a->mime, 'pdf') !== false) {
+            return true;
+        }
+
         return substr($a->bytes, 0, 5) === '%PDF-';
     }
 }
