@@ -5,6 +5,13 @@ namespace App\Imap;
 
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
+use Webklex\PHPIMAP\Exceptions\AuthFailedException;
+use Webklex\PHPIMAP\Exceptions\ConnectionFailedException;
+use Webklex\PHPIMAP\Exceptions\ImapBadRequestException;
+use Webklex\PHPIMAP\Exceptions\ImapServerErrorException;
+use Webklex\PHPIMAP\Exceptions\MaskNotFoundException;
+use Webklex\PHPIMAP\Exceptions\ResponseException;
+use Webklex\PHPIMAP\Exceptions\RuntimeException;
 
 /**
  * Factory that creates standalone Webklex IMAP clients.
@@ -20,6 +27,15 @@ final class ImapConnectionFactory
         private readonly string $password,
     ) {}
 
+    /**
+     * @throws RuntimeException
+     * @throws ResponseException
+     * @throws ImapBadRequestException
+     * @throws ConnectionFailedException
+     * @throws ImapServerErrorException
+     * @throws AuthFailedException
+     * @throws MaskNotFoundException
+     */
     public function create(): Client
     {
         $client = $this->clientManager->make([
