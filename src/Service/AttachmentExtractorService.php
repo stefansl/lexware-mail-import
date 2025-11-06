@@ -61,8 +61,6 @@ final readonly class AttachmentExtractorService
 
         // Try multiple attachment collection methods
         try { $candidates[] = $this->toList($msg->getAttachments()); } catch (\Throwable) {}
-        try { $candidates[] = $this->toList($msg->getAttachments(true)); } catch (\Throwable) {}
-        try { $candidates[] = $this->toList($msg->getAttachments(true, true)); } catch (\Throwable) {}
 
         // Include inline attachments
         try {
