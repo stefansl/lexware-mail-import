@@ -13,16 +13,16 @@ use App\Contract\VoucherUploaderInterface;
 use App\DTO\ImapFetchFilter;
 use App\Entity\ImportedMail;
 use App\Entity\ImportedPdf;
-use App\Imap\MessageRef;
+use App\Imap\MessageReference;
 use App\Service\Importer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 final class ImporterTest extends TestCase
 {
-    private function messageRef(): MessageRef
+    private function messageRef(): MessageReference
     {
-        return new MessageRef(vendorMessage: (object)[], uid: 1, subject: 'Subj', fromAddress: 'a@b.c', messageId: 'm1', receivedAt: new \DateTimeImmutable('2025-01-01'), mailbox: 'INBOX');
+        return new MessageReference(vendorMessage: (object)[], uid: 1, subject: 'Subj', fromAddress: 'a@b.c', messageId: 'm1', receivedAt: new \DateTimeImmutable('2025-01-01'), mailbox: 'INBOX');
     }
 
     private function makePdfEntity(string $path, bool $synced): ImportedPdf

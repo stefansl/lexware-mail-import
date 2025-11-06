@@ -5,14 +5,14 @@ namespace App\Attachment\Provider;
 
 use App\Attachment\Attachment;
 use App\Attachment\AttachmentProviderInterface;
-use App\Imap\MessageRef;
+use App\Imap\MessageReference;
 
 /**
  * Fallback provider: parses raw RFC822 if available, using php-mime-mail-parser.
  */
 final class RawMimeAttachmentProvider implements AttachmentProviderInterface
 {
-    public function get(MessageRef $ref): iterable
+    public function get(MessageReference $ref): iterable
     {
         $msg = $ref->vendorMessage;
         $raw = null;

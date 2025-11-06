@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Attachment;
 
-use App\Imap\MessageRef;
+use App\Imap\MessageReference;
 
 /** Tries multiple providers; the first one that yields content wins. */
 final class AttachmentChainProvider implements AttachmentProviderInterface
@@ -11,7 +11,7 @@ final class AttachmentChainProvider implements AttachmentProviderInterface
     /** @param AttachmentProviderInterface[] $providers */
     public function __construct(private readonly array $providers) {}
 
-    public function get(MessageRef $ref): iterable
+    public function get(MessageReference $ref): iterable
     {
         foreach ($this->providers as $provider) {
             $yielded = false;

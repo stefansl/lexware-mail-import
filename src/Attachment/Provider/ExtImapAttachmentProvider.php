@@ -5,7 +5,7 @@ namespace App\Attachment\Provider;
 
 use App\Attachment\Attachment;
 use App\Attachment\AttachmentProviderInterface;
-use App\Imap\MessageRef;
+use App\Imap\MessageReference;
 
 /**
  * Fallback provider: downloads attachments via PHP ext/imap by UID or by search.
@@ -20,7 +20,7 @@ final class ExtImapAttachmentProvider implements AttachmentProviderInterface
         private readonly string $password,
     ) {}
 
-    public function get(MessageRef $ref): iterable
+    public function get(MessageReference $ref): iterable
     {
         if (!function_exists('imap_open')) return;
 
@@ -107,7 +107,7 @@ final class ExtImapAttachmentProvider implements AttachmentProviderInterface
         };
     }
 
-    private function resolveUid($imap, MessageRef $ref): ?int
+    private function resolveUid($imap, MessageReference $ref): ?int
     {
         if ($ref->messageId) {
             $needle = str_replace('"','\"',$ref->messageId);

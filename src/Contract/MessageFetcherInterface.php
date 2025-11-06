@@ -4,12 +4,12 @@ declare(strict_types=1);
 namespace App\Contract;
 
 use App\DTO\ImapFetchFilter;
-use App\Imap\MessageRef;
+use App\Imap\MessageReference;
 
 interface MessageFetcherInterface
 {
     /**
-     * @return \Generator|MessageRef[]
+     * @return \Generator|MessageReference[]
      */
     public function fetch(ImapFetchFilter $filter): \Generator;
 }

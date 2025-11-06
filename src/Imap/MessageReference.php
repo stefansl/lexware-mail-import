@@ -6,7 +6,7 @@ namespace App\Imap;
 /**
  * Light-weight reference to an IMAP message, decoupled from the vendor object.
  */
-final class MessageRef
+final class MessageReference
 {
     public function __construct(
         public readonly object $vendorMessage,

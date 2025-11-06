@@ -5,14 +5,14 @@ namespace App\Attachment\Provider;
 
 use App\Attachment\Attachment;
 use App\Attachment\AttachmentProviderInterface;
-use App\Imap\MessageRef;
+use App\Imap\MessageReference;
 
 /**
  * Primary provider: fetches attachments via Webklex and forces body load.
  */
 final class WebklexAttachmentProvider implements AttachmentProviderInterface
 {
-    public function get(MessageRef $ref): iterable
+    public function get(MessageReference $ref): iterable
     {
         $msg = $ref->vendorMessage;
 

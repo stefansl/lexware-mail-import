@@ -44,12 +44,14 @@ services:
     # IMAP connection factory
     App\Imap\ImapConnectionFactory:
         arguments:
-            $clientManager: '@Webklex\PHPIMAP\ClientManager'
-            $host: '%env(IMAP_HOST)%'
+            $manager: '@Webklex\PHPIMAP\ClientManager'
+            $host: '%env(string:IMAP_HOST)%'
             $port: '%env(int:IMAP_PORT)%'
-            $encryption: '%env(default::IMAP_ENCRYPTION)%'
-            $username: '%env(IMAP_USERNAME)%'
-            $password: '%env(IMAP_PASSWORD)%'
+            $encryption: '%env(string:IMAP_ENCRYPTION)%'   # <- no question mark
+            $validateCert: '%env(bool:IMAP_VALIDATE_CERT)%'
+            $username: '%env(string:IMAP_USERNAME)%'
+            $password: '%env(string:IMAP_PASSWORD)%'
+            $protocol: 'imap'
 
     # Message fetcher
     App\Imap\WebklexMessageFetcher:
@@ -85,6 +87,8 @@ services:
 
     # Persistence helper
     App\Persistence\MailPersister: ~
+
+    App\Mail\FromAddressResolver: ~
 
     App\Service\FileInspector:
         arguments:

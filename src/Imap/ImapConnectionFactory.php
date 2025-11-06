@@ -5,49 +5,51 @@ namespace App\Imap;
 
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
-use Webklex\PHPIMAP\Exceptions\AuthFailedException;
-use Webklex\PHPIMAP\Exceptions\ConnectionFailedException;
-use Webklex\PHPIMAP\Exceptions\ImapBadRequestException;
-use Webklex\PHPIMAP\Exceptions\ImapServerErrorException;
-use Webklex\PHPIMAP\Exceptions\MaskNotFoundException;
-use Webklex\PHPIMAP\Exceptions\ResponseException;
-use Webklex\PHPIMAP\Exceptions\RuntimeException;
 
 /**
- * Factory that creates standalone Webklex IMAP clients.
+ * Creates and opens a connected Webklex IMAP client.
+ * - Centralizes configuration and connection logic.
+ * - Converts empty encryption to null.
+ * - Throws a RuntimeException on connection errors.
  */
 final class ImapConnectionFactory
 {
     public function __construct(
-        private readonly ClientManager $clientManager,
+        private readonly ClientManager $manager,
         private readonly string $host,
         private readonly int $port,
-        private readonly ?string $encryption, // 'ssl' | 'tls' | null
+        private readonly ?string $encryption,   // 'ssl' | 'tls' | null
+        private readonly bool $validateCert,
         private readonly string $username,
         private readonly string $password,
+        private readonly string $protocol = 'imap' // keep 'imap' unless you really need 'imap/ssl' legacy
     ) {}
 
-    /**
-     * @throws RuntimeException
-     * @throws ResponseException
-     * @throws ImapBadRequestException
-     * @throws ConnectionFailedException
-     * @throws ImapServerErrorException
-     * @throws AuthFailedException
-     * @throws MaskNotFoundException
-     */
-    public function create(): Client
+    /** Build and connect a Webklex client. */
+    public function connect(): Client
     {
-        $client = $this->clientManager->make([
+        // Map empty string to null for encryption
+        $enc = $this->encryption;
+        if ($enc !== null) {
+            $enc = trim($enc) === '' ? null : strtolower(trim($enc));
+        }
+
+        $client = $this->manager->make([
             'host'          => $this->host,
             'port'          => $this->port,
-            'encryption'    => $this->encryption ?: null,
-            'validate_cert' => true,
+            'encryption'    => $enc,                 // null | 'ssl' | 'tls'
+            'validate_cert' => $this->validateCert,  // true/false
             'username'      => $this->username,
             'password'      => $this->password,
-            'protocol'      => 'imap',
+            'protocol'      => $this->protocol,      // 'imap'
+            // other optional keys: 'timeout', 'proxy', ...
         ]);
-        $client->connect();
+
+        try {
+            $client->connect();
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('IMAP connection failed: '.$e->getMessage(), previous: $e);
+        }
 
         return $client;
     }
