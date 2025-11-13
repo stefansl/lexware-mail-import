@@ -10,8 +10,8 @@
         "ext-iconv": "*",
         "ext-imap": "*",
         "doctrine/doctrine-bundle": "^3.0",
-        "doctrine/doctrine-migrations-bundle": ">=3.5",
-        "doctrine/orm": ">=3.5.3",
+        "doctrine/doctrine-migrations-bundle": ">=3.6",
+        "doctrine/orm": ">=3.5.7",
         "php-mime-mail-parser/php-mime-mail-parser": "^9.0.1",
         "symfony/console": "7.3.*",
         "symfony/dotenv": "7.3.*",
@@ -80,8 +80,8 @@
         }
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.89.1",
-        "phpunit/phpunit": "^11.5.43",
+        "friendsofphp/php-cs-fixer": "^3.89.2",
+        "phpunit/phpunit": "^11.5.44",
         "symfony/maker-bundle": "^1.64",
         "symfony/phpunit-bridge": "^7.3.4"
     }
