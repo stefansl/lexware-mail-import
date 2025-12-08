@@ -70,4 +70,3 @@ when@prod:
                 path: php://stderr
                 level: debug
                 formatter: monolog.formatter.json
-            co
